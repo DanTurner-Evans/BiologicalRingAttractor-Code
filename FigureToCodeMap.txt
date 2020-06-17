@@ -1,0 +1,115 @@
+Figure 1:
+ J: bump position vs. heading, stripe pos. (KirPENAnalysis)
+Figure S1:
+ A: offset histogram (KirPENAnalysis)
+ B: circular variance example (KirPENAnalysis)
+ C: sliding window example (KirPENAnalysis)
+ D: slope histogram (KirPENAnalysis)
+ E: percentile and slope across flies (KirPENAnalysis)
+Figure 2:
+ E: EB connectivity matrix (FAFBConnectivity)
+ F-H: transmitter RNA-seq counts (RNASeq_Clean)
+Figure S3:
+ Connectivity extrapolation
+Figure S4:
+ RNA-seq p-vals (RNASeq_Clean)
+Figure 3:
+ D: EB EPG connectivity matrix (FAFBConnectivity)
+ E: EPG receptors (RNASeq_Clean)
+ F: EPG Shi example (ShiEPGAnalysis)
+ G: EPG Shi PVA strength (ShiEPGAnalysis)
+Figure S5:
+ A: FIBSEM
+ B: E-PG Shi (at PT) bump amplitude dark vs. light (ShiEPGAnalysis)
+ C: E-PG Shi (at 30C) " (ShiEPGAnalysis)
+ D: cross-correlation of activity with velocity (ShiEPGAnalysis)
+ E: CC and FWHM across flies (ShiEPGAnalysis)
+ F: stats for PT (ShiEPGAnalysis)
+ G: stats for 30C (ShiEPGAnalysis)
+Figure 4:
+ D: PB E-PG and D7 matrix (FAFBConnectivity)
+ G: Two color D7 and EPG stills (TwoColorDelta7EPGAnalysis)
+ H: Two color example activity (TwoColorDelta7EPGAnalysis)
+ I: Two color registered peaks (TwoColorDelta7EPGAnalysis)
+ J: Two color PVA difference (TwoColorDelta7EPGAnalysis)
+ K: D7 Shi example (ShiD7Analysis)
+ L: ctrl Shi PVA strength (ShiD7Analysis)
+ M: D7 Shi PVA strength (ShiD7Analysis)
+ N: ctrl Shi bump tracking example (ShiD7Analysis)
+ O: D7 Shi bump tracking example (ShiD7Analysis)
+ P: ctrl Shi slope (ShiD7Analysis)
+ Q: D7 Shi slope (ShiD7Analysis)
+ R: percentile range (ShiD7Analysis)
+ S: slope medians (ShiD7Analysis)
+Figure S6:
+ B: FIBSEM E-PGs vs. D7s
+ C: two color D7 vs. E-PG (TwoColorDelta7EPGAnalysis)
+ D: examples of shi ctrls (ShiD7Analysis)
+ E: mean(max DF/F) for ctrl and D7s (ShiD7Analysis)
+ F: mean(FWHM) for ctrl and D7s (ShiD7Analysis)
+Figure 5:
+ D: PB E-PG and P-EN1 connectivity (FAFBConnectivity)
+ E: EB " (FAFBConnectivity)
+ F: Bar plot of P-EN to E-PG counts (FAFBConnectivity)
+ G: NO P-EN1 matrix (FAFBConnectivity)
+ H: RNA-seq for receptors
+Figure S7:
+ A: FIBSEM of P-EN1s and E-PGs in PB
+ B: FAFB E-PG and D7 to P-EN1s in PB (FAFBConnectivity)
+ C: FIBSEM of above
+ D: FIBSEM of E-PGs and P-EN1s in the EB
+ E: FIBSEM of the P-EN1s in the NO
+Figure 6:
+ D: ring to E-PG and P-EN matrix (FAFBConnectivity)
+ E: ring to ring matrix (FAFBConnectivity)
+ F: RNA-seq for receptors for ring neurons (RNASeq_Clean)
+ G: ctrl shi example (ShiTuBuAnalysis)
+ H: TuBu shi example (ShiTuBuAnalysis)
+ I: ctrl and TuBu example histograms (ShiTuBuAnalysis)
+ J: circular variance for ctrl and TuBu experiments (ShiTuBuAnalysis)
+Figure S8:
+ A: single ring tuning (OneColorRingSingleNeuronAnalysis)
+ C: population ring activity over time (OneColorRingPopulationAnalysis)
+ D: ring act. for each period (OneColorRingPopulationAnalysis)
+ E: stats of above (OneColorRingPopulationAnalysis)
+Figure S9:
+ A: ctrl act. at permissive T (ShiTuBuAnalysis)
+ B: TuBu act at permissive T (ShiTuBuAnalysis)
+Figure 7:
+ D: PB E-PG and D7 to P-EN2 and P-EG matrix (FAFBConnectivity)
+ E: EB E-PG, P-EN2, and P-EG matrix (FAFBConnectivity)
+ F: NO P-EN1 and P-EN2 matrix (FAFBConnectivity)
+ G: Two color P-EN2, P-EG example (TwoColorPEN2PEGAnalysis)
+ H: PVA from above and heading (TwoColorPEN2PEGAnalysis)
+ I: PVA difference for two color vs. vR (TwoColorPEN2PEGAnalysis)
+ J: mean PVA diff across flies (TwoColorPEN2PEGAnalysis)
+ K: P-EN2 kir experiment (KirPENAnalysis)
+ L: PVA strength vs. vR example (KirPENAnalysis)
+ M: as above, across flies (KirPENAnalysis)
+Figure S10:
+ A: FIBSEM of E-PGs and D7s to P-EN2s and P-EGs in the PB
+ B: FIBSEM of E-PGs, P-EN2s, and P-EGs in the EB
+ C: FIBSEM of the P-EN1s and 2s in the NO
+Figure S11:
+ A: CC for P-EG example (TwoColorPEN2PEGAnalysis)
+ B: " for P-EN2 (TwoColorPEN2PEGAnalysis)
+ C: max vR CC for P-EGs and P-EN2s (TwoColorPEN2PEGAnalysis)
+ D: max vF CC for P-EGs and P-EN2s (TwoColorPEN2PEGAnalysis)
+ E: mean DF off peak in the dark (KirPENAnalysis)
+ F: mean DF off peak with a stripe (KirPENAnalysis)
+ G: 21.5 raised kir in dark and light (KirPENAnalysis)
+ H: PVA strength vs. vR (KirPENAnalysis)
+ I: 30 C " (KirPENAnalysis)
+ J: as in F (KirPENAnalysis)
+ K: PVA strength vs. vR with a stripe (KirPENAnalysis)
+ L-N: NEURON plots
+ O: P-EN2 vs. E-PG bump profiles
+ P: two color P-EG vs. P-EN2 example (TwoColorPEN2PEGAnalysis)
+ Q: PVA of above with heading (TwoColorPEN2PEGAnalysis)
+Figure S12:
+ behavior (ShiD7Analysis, ShiEPGTuBuAnalysis)
+Figure 8:
+ A: simulated weight matrix
+ B: derived weight matrix (FAFBConnectivity)
+Figure S13:
+ FAFB vs. FIBSEM comparison

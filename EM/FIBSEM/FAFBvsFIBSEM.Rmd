@@ -1,0 +1,667 @@
+---
+title: "FAFB vs. FIBSEM"
+output: html_notebook
+---
+
+Load the libraries
+```{r}
+library(nat)
+library(neuprintr)
+library(neuprintrExtra)
+library(tidyverse)
+library(tidygraph)
+library(ggraph)
+library(gridExtra)
+library(paletteer)
+library(reshape2)
+library(combinat)
+library(cowplot)
+source("FAFBvsFIBSEMUtils.R")
+options(nat.plotengine = 'rgl')
+```
+
+Connect to neuprint
+```{r}
+neuprint_login()
+```
+
+Get the FAFB data in the PB
+```{r}
+FAFB_PB_df <-FAFBLoad("PB")
+FAFB_PB_df <- FAFB_PB_df %>% filter(grepl("EPG",nameid.from) | grepl("Delta7",nameid.from))
+
+gFAFB <- conMatPlot(FAFB_PB_df,150) + ggtitle("FAFB data")
+
+print(gFAFB)
+```
+
+Get the FIBSEM data in the PB
+```{r}
+
+neuronList = c("PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L7",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L6",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L7R2",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L6R3",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L5R4",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L2R7",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L1")
+
+FIBSEM_PB <- FIBSEMLoad(neuronList,"PB") %>% filter(grepl("Delta7",nameid.from) | grepl("EPG",nameid.from))
+
+gFIBSEM <-conMatPlot(FIBSEM_PB,150)
+
+print(gFIBSEM)
+
+ggsave("FIBSEM_PB.pdf", plot = gFIBSEM, device='pdf', 
+       path = "plots\\",
+       scale = 1.5, width = 20, height = 15, units ="cm", dpi = 600, limitsize = TRUE)
+```
+
+Downselect the FIBSEM neurons for a direct comparison
+```{r}
+DSneuronList <- c("EPG-6R",
+                  "EPG-6L",
+                  "Delta7-7R",
+                  "Delta7-6R",
+                  "Delta7-5R",
+                  "Delta7-2R",
+                  "Delta7-1R")
+numNrons <-  c(2,2,1,2,2,1,1)
+
+FIBSEM_PB_Cut <- FIBSEMDownSel(FIBSEM_PB, DSneuronList, numNrons)
+
+gFIBSEM_DS <-conMatPlot(FIBSEM_PB_Cut,150) + ggtitle("select FIBSEM data")
+
+print(gFAFB)
+print(gFIBSEM_DS)
+```
+
+Compare the two matrices
+```{r}
+PBComp <- datComp(FAFB_PB_df,FIBSEM_PB_Cut)
+
+gPer <- ggplot(PBComp) + 
+  theme_classic() + theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(low="blue", mid="white", high="red", midpoint =0, limits=c(-1,1)) +
+  geom_tile(aes(nameid.to,nameid.from,fill=per))+coord_fixed(ratio=1,expand=FALSE) + ggtitle("diff/sum when both have synapses")
+
+gDiff <- ggplot(PBComp) + 
+  theme_classic() + theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(low="blue", mid="white", high="red", midpoint =0, limits=c(-30,30)) +
+  geom_tile(aes(nameid.to,nameid.from,fill=diff))+coord_fixed(ratio=1,expand=FALSE) + ggtitle("synapses for only one dataset")
+
+print(gPer)
+print(gDiff)
+```
+
+Put them all on one plot and compare
+```{r}
+pdf("plots\\PBComp_test.pdf", width = 20, height = 20)
+print(grid.arrange(gFAFB,gFIBSEM_DS,gPer,gDiff,
+                   layout_matrix = rbind(c(1,2),c(3,4))))
+dev.off()
+```
+
+Just plot EPG and D7 connections in the PB
+```{r}
+neuronList = c("EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L7R2",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L6R3",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L5R4",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L2R7",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L1")
+
+FIBSEM_PB <- FIBSEMLoad(neuronList,"PB")
+FIBSEM_PB <- FAFBSort(FIBSEM_PB,"PB-subset")
+
+gFIBSEM <-conMatPlot(FIBSEM_PB,60) +
+  geom_hline(yintercept = 12.5) + geom_vline(xintercept = 12.5)
+
+print(gFIBSEM)
+
+pdf("plots\\PBEPGsD7s_FIBSEM_test.pdf", width = 10, height = 10)
+print(gFIBSEM)
+dev.off()
+```
+
+Just plot EPG and PEN1 connections in the PB
+```{r}
+neuronList = c("EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7")
+
+FIBSEM_PB <- FIBSEMLoad(neuronList,"PB")
+FIBSEM_PB <- FAFBSort(FIBSEM_PB,"PB-subset")
+
+gFIBSEM <-conMatPlot(FIBSEM_PB,40) +
+  geom_hline(yintercept = 12.5) + geom_vline(xintercept = 12.5)
+
+print(gFIBSEM)
+
+pdf("plots\\PBEPGsPEN1s_FIBSEM_test.pdf", width = 5, height = 5)
+print(gFIBSEM)
+dev.off()
+```
+
+Just plot EPG, Delta7, PEN2, and PEG connections in the PB
+```{r}
+neuronList = c("EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L7",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L6",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L7R2",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L6R3",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L5R4",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L2R7",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L1")
+
+FIBSEM_PB <- FIBSEMLoad(neuronList,"PB") %>% 
+  filter(grepl("Delta7",nameid.from) | grepl("EPG",nameid.from)) %>%
+  filter(!grepl("Delta7",nameid.to) & !grepl("EPG",nameid.to))
+FIBSEM_PB <- FAFBSort(FIBSEM_PB,"PB-subset")
+
+gFIBSEM <-conMatPlot(FIBSEM_PB,150) +
+  geom_hline(yintercept = 12.5) + geom_vline(xintercept = 8.5)
+
+print(gFIBSEM)
+
+pdf("plots\\PBEPGsD7sPEN2sPEGs_FIBSEM_test.pdf", width = 10, height = 10)
+print(gFIBSEM)
+dev.off()
+```
+
+Just plot EPG, Delta7, and PEN1 in the PB
+```{r}
+neuronList = c("EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L7R2",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L6R3",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L5R4",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L2R7",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L1")
+
+FIBSEM_PB <- FIBSEMLoad(neuronList,"PB") %>% 
+  filter(grepl("Delta7",nameid.from) | grepl("EPG",nameid.from)) %>%
+  filter(!grepl("Delta7",nameid.to) & !grepl("EPG",nameid.to))
+FIBSEM_PB <- FAFBSort(FIBSEM_PB,"PB-subset")
+
+gFIBSEM <-conMatPlot(FIBSEM_PB,40) +
+  geom_hline(yintercept = 12.5)
+
+print(gFIBSEM)
+
+pdf("plots\\PBEPGsD7sPEN1s_FIBSEM_test.pdf", width = 10, height = 10)
+print(gFIBSEM)
+dev.off()
+```
+
+Compare the FAFB data to the FIBSEM data - EB
+```{r}
+FAFB_EB_df <-FAFBLoad("EB") %>%
+  filter(!grepl("R4d",nameid.to) & !grepl("R4d",nameid.from))
+FAFB_EB_df <-FAFBSort(FAFB_EB_df,"EB")
+
+gFAFB <- conMatPlot(FAFB_EB_df,150) + geom_hline(yintercept = 10.5) + geom_hline(yintercept = 18.5) + geom_hline(yintercept = 26.5) + geom_hline(yintercept = 30.5) + 
+  geom_vline(xintercept = 10.5) + geom_vline(xintercept = 18.5) + geom_vline(xintercept = 26.5) + geom_vline(xintercept = 30.5) +
+  ggtitle("FAFB data")
+
+print(gFAFB)
+
+ggsave("FAFB_EB_test.pdf", plot = gFAFB, device='pdf', 
+       path = "plots\\",
+       scale = 1.5, width = 20, height = 15, units ="cm", dpi = 600, limitsize = TRUE)
+```
+
+```{r}
+neuronList = c("PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L7",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L6")#"R4d"
+
+FIBSEM_EB <- FIBSEMLoad(neuronList,"EB")
+
+gFIBSEM <-conMatPlot(FIBSEM_EB,175)
+
+print(gFIBSEM)
+
+ggsave("FIBSEM_EB_test.pdf", plot = gFIBSEM, device='pdf', 
+       path = "plots\\",
+       scale = 1.5, width = 20, height = 15, units ="cm", dpi = 600, limitsize = TRUE)
+```
+
+Downselect the FIBSEM neurons for a direct comparison
+```{r}
+DSneuronList <- c("EPG-6R",
+                  "EPG-6L")
+numNrons <-  c(2,2)#,7)
+
+FIBSEM_EB_Cut <- FIBSEMDownSel(FIBSEM_EB, DSneuronList, numNrons)
+
+gFIBSEM_DS <-conMatPlot(FIBSEM_EB_Cut,150) + ggtitle("select FIBSEM data") +
+  geom_hline(yintercept = 10.5) + geom_hline(yintercept = 18.5) + geom_hline(yintercept = 26.5) + geom_hline(yintercept = 30.5) + 
+  geom_vline(xintercept = 10.5) + geom_vline(xintercept = 18.5) + geom_vline(xintercept = 26.5) + geom_vline(xintercept = 30.5)
+
+print(gFAFB)
+print(gFIBSEM_DS)
+```
+
+Compare the two matrices
+```{r}
+EBComp <- datComp(FAFB_EB_df %>% 
+                    filter(!grepl("R4d",nameid.from) & !grepl("R4d",nameid.to)),
+                  FIBSEM_EB_Cut)
+
+gPer <- ggplot(EBComp) + 
+  theme_classic() + theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(low="blue", mid="white", high="red", midpoint =0, limits=c(-1,1)) +
+  geom_tile(aes(nameid.to,nameid.from,fill=per))+coord_fixed(ratio=1,expand=FALSE) + ggtitle("diff/sum when both have synapses") +
+  geom_hline(yintercept = 10.5) + geom_hline(yintercept = 18.5) + geom_hline(yintercept = 26.5) + geom_hline(yintercept = 30.5) + 
+  geom_vline(xintercept = 10.5) + geom_vline(xintercept = 18.5) + geom_vline(xintercept = 26.5) + geom_vline(xintercept = 30.5)
+
+gDiff <- ggplot(EBComp) + 
+  theme_classic() + theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(low="blue", mid="white", high="red", midpoint =0, limits=c(-45,45)) +
+  geom_tile(aes(nameid.to,nameid.from,fill=diff))+coord_fixed(ratio=1,expand=FALSE) + ggtitle("synapses for only one dataset") +
+  geom_hline(yintercept = 10.5) + geom_hline(yintercept = 18.5) + geom_hline(yintercept = 26.5) + geom_hline(yintercept = 30.5) + 
+  geom_vline(xintercept = 10.5) + geom_vline(xintercept = 18.5) + geom_vline(xintercept = 26.5) + geom_vline(xintercept = 30.5)
+
+print(gPer)
+print(gDiff)
+```
+
+Put them all on one plot and compare
+```{r}
+pdf("plots\\EBComp_test.pdf", width = 20, height = 20)
+print(grid.arrange(gFAFB,gFIBSEM_DS,gPer,gDiff,
+                   layout_matrix = rbind(c(1,2),c(3,4))))
+dev.off()
+```
+
+
+
+Just plot EPG to EPG connections in the EB
+```{r}
+neuronList = c("EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6")
+
+FIBSEM_EB <- FIBSEMLoad(neuronList,"EB")
+
+gFIBSEM <-conMatPlot(FIBSEM_EB,100) +
+  geom_hline(yintercept = 6.5) + geom_hline(yintercept = 9.5) + 
+  geom_vline(xintercept = 6.5) + geom_vline(xintercept = 9.5)
+
+print(gFIBSEM)
+
+pdf("plots\\EBEPGs_FIBSEM_test.pdf", width = 5, height = 5)
+print(gFIBSEM)
+dev.off()
+```
+
+Just plot EPG and PEN1 connections in the EB
+```{r}
+neuronList = c("EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7")
+
+FIBSEM_EB <- FIBSEMLoad(neuronList,"EB")
+
+gFIBSEM <-conMatPlot(FIBSEM_EB,120) +
+  geom_hline(yintercept = 12.5) + 
+  geom_vline(xintercept = 12.5)
+
+print(gFIBSEM)
+
+pdf("plots\\EBEPGsPEN1s_FIBSEM_test.pdf", width = 5, height = 5)
+print(gFIBSEM)
+dev.off()
+```
+
+Just plot EPG, PEN2, and PEG connections in the EB
+```{r}
+neuronList = c("EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L7",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L6")
+
+FIBSEM_EB <- FIBSEMLoad(neuronList,"EB")
+
+gFIBSEM <-conMatPlot(FIBSEM_EB,100) +
+  geom_tile(aes(nameid.to,nameid.from,fill=ROIweight))+coord_fixed(ratio=1) +
+  geom_hline(yintercept = 12.5) + geom_hline(yintercept = 20.5) +
+  geom_vline(xintercept = 12.5) + geom_vline(xintercept = 20.5)
+
+print(gFIBSEM)
+
+pdf("plots\\EBEPGsPEN2sPEGs_FIBSEM_test.pdf", width = 5, height = 5)
+print(gFIBSEM)
+dev.off()
+```
+
+Compare the FAFB data to the FIBSEM data - NO
+```{r}
+FAFB_NO_df <-FAFBLoad("NO")
+FAFB_NO_df <- FAFBSort(FAFB_NO_df,"NO")
+
+gFAFB <- conMatPlot(FAFB_NO_df,50) +
+  ggtitle("FAFB data")  +
+  geom_hline(yintercept = 8.5) + geom_vline(xintercept = 8.5) +
+  geom_hline(yintercept = 16.5) + geom_vline(xintercept = 16.5)
+
+ggsave("FAFB_NO.pdf", plot = last_plot(), device='pdf', 
+       path = "plots\\",
+       scale = 1.5, width = 20, height = 15, units ="cm", dpi = 600, limitsize = TRUE)
+
+print(gFAFB)
+```
+
+```{r}
+neuronList = c("PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L7")
+
+FIBSEM_NO <- FIBSEMLoad(neuronList,"NO") %>% filter(!is.na(nameid.from) & !is.na(nameid.to))
+
+gFIBSEM <-conMatPlot(FIBSEM_NO,50) +
+  geom_hline(yintercept = 8.5) + geom_vline(xintercept = 8.5) + 
+  geom_hline(yintercept = 16.5) + geom_vline(xintercept = 16.5)
+
+pdf("plots\\NOPENs_FIBSEM.pdf", width = 5, height = 5)
+print(gFIBSEM)
+
+gFIBSEM <- gFIBSEM + ggtitle("FIBSEM data") +
+  geom_hline(yintercept = 8.5) + geom_vline(xintercept = 8.5) + 
+  geom_hline(yintercept = 16.5) + geom_vline(xintercept = 16.5)
+
+ggsave("FIBSEM_NO.pdf", plot = last_plot(), device='pdf', 
+       path = "plots\\",
+       scale = 1.5, width = 20, height = 15, units ="cm", dpi = 600, limitsize = TRUE)
+```
+
+Compare the two matrices
+```{r}
+NOComp <- datComp(FAFB_NO_df,FIBSEM_NO)
+
+gPer <- ggplot(NOComp) + 
+  theme_classic() + theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(low="blue", mid="white", high="red", midpoint =0, limits=c(-1,1)) +
+  geom_tile(aes(nameid.to,nameid.from,fill=per))+coord_fixed(ratio=1,expand=FALSE) + ggtitle("diff/sum when both have synapses") +
+  geom_hline(yintercept = 8.5) + geom_vline(xintercept = 8.5) + 
+  geom_hline(yintercept = 16.5) + geom_vline(xintercept = 16.5)
+
+gDiff <- ggplot(NOComp) + 
+  theme_classic() + theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_gradient2(low="blue", mid="white", high="red", midpoint =0, limits=c(-45,45)) +
+  geom_tile(aes(nameid.to,nameid.from,fill=diff))+coord_fixed(ratio=1,expand=FALSE) + ggtitle("synapses for only one dataset") +
+  geom_hline(yintercept = 8.5) + geom_vline(xintercept = 8.5) + 
+  geom_hline(yintercept = 16.5) + geom_vline(xintercept = 16.5)
+
+print(gPer)
+print(gDiff)
+```
+
+Put them all on one plot and compare
+```{r}
+pdf("plots\\NOComp_test.pdf", width = 20, height = 20)
+print(grid.arrange(gFAFB,gFIBSEM,gPer,gDiff,
+                   layout_matrix = rbind(c(1,2),c(3,4))))
+dev.off()
+```
+
+Just plot PEN1 connections in the NO
+```{r}
+neuronList = c("PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7")
+
+FIBSEM_NO <- FIBSEMLoad(neuronList,"NO")
+
+gFIBSEM <-conMatPlot(FIBSEM_NO,50) +
+  geom_hline(yintercept = 4.5) + 
+  geom_vline(xintercept = 4.5)
+
+print(gFIBSEM)
+
+pdf("plots\\NOPEN1s_FIBSEM.pdf", width = 5, height = 5)
+print(gFIBSEM)
+dev.off()
+```
+
+
+
+Find the difference in connections between neurons in the PB
+```{r}
+
+# Pull the FAFB data
+FAFB_PB_df <-FAFBLoad("PB")
+FAFB_PB_df <- FAFB_PB_df %>% filter(grepl("EPG",nameid.from) | grepl("Delta7",nameid.from))
+
+# Pull the FIBSEM data
+neuronList = c("PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L7",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L6",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L7R2",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L6R3",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L5R4",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L2R7",
+              "Delta7\\\\\\\\(PB15\\\\\\\\)_L1")
+FIBSEM_PB <- FIBSEMLoad(neuronList,"PB") %>% filter(grepl("Delta7",nameid.from) | grepl("EPG",nameid.from))
+
+allMetrics_PB <- permuteComp(FAFB_PB_df, FIBSEM_PB,"PB",200)
+```
+
+Find the difference in connections between neurons in the EB
+```{r}
+
+# Pull the FAFB data
+FAFB_EB_df <-FAFBLoad("EB")
+FAFB_EB_df <- FAFB_EB_df %>% filter(!grepl("GE-r1",nameid.from) & !grepl("GE-r1",nameid.to)) %>%
+  filter(!grepl("R4d",nameid.from) & !grepl("R4d",nameid.to))
+
+# Pull the FIBSEM data
+neuronList = c("PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L7",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L5",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_R6",
+              "EPG\\\\\\\\(PB08\\\\\\\\)_L6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L5",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_R6",
+              "PEG\\\\\\\\(PB07\\\\\\\\)_L6")
+FIBSEM_EB <- FIBSEMLoad(neuronList,"EB")
+
+allMetrics_EB <- permuteComp(FAFB_EB_df, FIBSEM_EB,"EB",200)
+```
+
+Find the difference in connections between neurons in the NO
+```{r}
+
+# Pull the FAFB data
+FAFB_NO_df <-FAFBLoad("NO")
+FAFB_NO_df <- FAFB_NO_df %>% filter(!grepl("NO-LAL-G",nameid.from) & !grepl("NO-LAL-G",nameid.to))
+
+
+# Pull the FIBSEM data
+neuronList = c("PEN_a\\\\\\\\(PB06a\\\\\\\\)_R5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L5",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L6",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_R7",
+              "PEN_a\\\\\\\\(PB06a\\\\\\\\)_L7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L5",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L6",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_R7",
+              "PEN_b\\\\\\\\(PB06b\\\\\\\\)_L7")
+FIBSEM_NO <- FIBSEMLoad(neuronList,"NO")
+
+allMetrics_NO <- permuteComp(FAFB_NO_df, FIBSEM_NO,"NO",200)
+
+```
+
+Plot the different metrics
+```{r}
+
+# Plot the differences
+allDiffs <- data.frame(d = allMetrics_EB %>% filter(diff != 0) %>% select(diff),
+                       region = "EB")
+allDiffs <- rbind(allDiffs,
+                  data.frame(d = allMetrics_PB %>% filter(diff != 0) %>% select(diff),
+                             region = "PB"))
+allDiffs <- rbind(allDiffs,
+                  data.frame(d = allMetrics_NO %>% filter(diff != 0) %>% select(diff),
+                             region = "NO"))
+allDiffs$region <- factor(allDiffs$region, levels = c("PB","EB","NO"))
+diffPlot <- ggplot(allDiffs,aes(x=region,y=diff,fill=region)) + geom_violin() +
+  theme_minimal_hgrid() + ylab('FIBSEM cts       FAFB cts') +
+  theme(axis.title = element_text(size = 8), 
+      axis.text = element_text(size = 6),
+      legend.text = element_text(size = 6),
+      legend.title = element_text(size = 8))
+
+# Plot the ratios
+allPers <- data.frame(per = allMetrics_EB %>% filter(per != 0 | equal !=0 ) %>% select(per),
+                       region = "EB")
+allPers <- rbind(allPers,
+                  data.frame(per = allMetrics_PB %>% filter(per != 0 | equal !=0 ) %>% select(per),
+                             region = "PB"))
+allPers <- rbind(allPers,
+                  data.frame(per = allMetrics_NO %>% filter(per != 0 | equal !=0 ) %>% select(per),
+                             region = "NO"))
+allPers$region <- factor(allPers$region, levels = c("PB","EB","NO"))
+perPlot <- ggplot(allPers,aes(x=region,y=per,fill=region)) + geom_violin() +
+  theme_minimal_hgrid() + ylab('(FAFB cts − FIBSEM cts)/(total cts)') + ylim(-1,1) +
+  theme(axis.title = element_text(size = 8), 
+      axis.text = element_text(size = 6),
+      legend.text = element_text(size = 6),
+      legend.title = element_text(size = 8))
+
+pdf("plots\\FAFBVsFIBSEMComp.pdf", width = unit(8,"in"), height = unit(11,"in"))
+plot_grid(gFAFB,gFIBSEM,gPer,gDiff,perPlot, diffPlot, 
+          labels = c('A','B','C','D','E','F'), label_size = 8,
+          ncol=2,
+          rel_heights = c(1,1,0.5))
+dev.off()
+
+```
