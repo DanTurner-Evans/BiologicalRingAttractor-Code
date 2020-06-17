@@ -1,4 +1,5 @@
 Figure 1:
+ I: raw image and PVA plots (ShiTuBuAnalysis)
  J: bump position vs. heading, stripe pos. (KirPENAnalysis)
 Figure S1:
  A: offset histogram (KirPENAnalysis)

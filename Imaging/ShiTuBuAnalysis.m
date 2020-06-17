@@ -129,12 +129,206 @@ for condID = 1:length(cond)
 end
 
 %% Make a summary figure for the paper - Figure 6 G-J
+paperFig = figure('units','normalized','outerposition',[0 0 1 1]);
+
+trialName = 'All_30C';%All
+PVAThresh = 0.075;
+
+% Now plot example of the bump over time
+flies = [2,1];%[2,5]
+trials = [2,3];%[1,1]
+
+for condID = 1:length(cond)
+    for flyID = flies(condID)
+        for trialID = trials(condID)
+            datNow = cond{condID}.allFlyData{flyID}.(trialName){trialID};
+
+            tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
+            tPts = tPts - tPts(1);
+            heading = pi/180*datNow.positionDatMatch.PosRotMatch;
+            stripePos = 360/240*datNow.positionDatMatch.OffsetRotMatch(:,2);
+
+            headingPlt = heading;
+            stripePosPlt = UnWrap(stripePos,2,0);
+%             for tStep = 2:length(tPts)
+%                 if abs(headingPlt(tStep)-headingPlt(tStep-1))> pi
+%                     headingPlt(tStep-1) = NaN;
+%                 end
+%                 if abs(stripePosPlt(tStep)-stripePosPlt(tStep-1))> pi
+%                     stripePosPlt(tStep-1) = NaN;
+%                 end
+%             end
+
+            DF = datNow.ROIaveMax-1;
+            [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
+            angs = angs-0.5*mean(diff(angs));
+            PVAUW = UnWrap(PVAPlt,1.5,1);
+            PVAPlt(find(PVAStren<PVAThresh)) = NaN;
+            for tStep = 2:length(tPts)
+                if abs(PVAPlt(tStep)-PVAPlt(tStep-1))> pi
+                    PVAPlt(tStep-1) = NaN;
+                end
+            end
+
+            [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
+            darkJumps = find(diff(darkPer)>1);
+            if ~isempty(darkJumps);
+                darkPer(darkJumps(1)+1:end) = [];
+            end
+            % Find when the stripe jumps
+            stripeJumps = find(diff(datNow.positionDatMatch.Trans)~=0)+1;
+            stripeJumps(end) = [];
+
+            subplot(5,5,10*(condID-1)+[1:3]);
+            hold on;
+            imagesc(tPts,angs,DF);
+            plot(tPts,PVAPlt,'Color',[0.25 0 0.5]);
+            caxis([0 1.25]);
+            ylim([-pi pi]);
+            yticks([-pi 0 pi]);
+            ylabel('EB pos. (rad)');
+            xlim([tPts(1) tPts(stripeJumps(1))]);
+            xlims = get(gca,'XLim');
+            text(xlims(1),1.5*pi,cond{condID}.name,'FontSize',14);
+            plot([tPts(darkPer(end)) tPts(darkPer(end))],[-pi pi],'--k');
+
+
+            subplot(5,5,10*(condID-1)+[6:8]);
+            hold on;
+            plot(tPts(darkPer),stripePosPlt(darkPer),'k');
+            plot(tPts(CLPer),stripePosPlt(CLPer),'b');
+            plot(tPts,PVAUW-PVAUW(darkPer(end))+stripePosPlt(darkPer(end)),'Color',[0.25 0 0.5]);
+            xlabel('time (s)');
+%             ylim([-pi pi]);
+            ylabel('pos. (rad)');
+            xlim([tPts(1) tPts(stripeJumps(1))]);
+            yticks(linspace(-20*pi,20*pi,21));
+            yl = get(gca,'ylim');
+            plot([tPts(darkPer(end)) tPts(darkPer(end))],[yl(1) yl(2)],'--k');
+            if condID == 1
+                legend({'heading (dark)','stripe position (CL)'});
+                legend('boxoff');
+            end
+        end
+    end
+    colormap(brewermap(64, 'Blues'));
+end
+
+% Plot examples of the offset distribution
+PVAThresh = 0.075;
+stripeMult = 360/240;
+offsetBins = linspace(-pi,pi,17);
+offsetCents = offsetBins;
+offsetCents(end) = [];
+offsetCents = offsetCents + 0.5*mean(diff(offsetCents));
+
+for condID = 1:length(cond)
+    for flyID = flies(condID)
+        for trialID = trials(condID)
+            datNow = cond{condID}.allFlyData{flyID}.(trialName){trialID};
+            
+            tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
+            tPts = tPts - tPts(1);
+            heading = pi/180*datNow.positionDatMatch.PosRotMatch;
+            stripePos = datNow.positionDatMatch.OffsetRotMatch(:,2);
+            
+            DF = datNow.ROIaveMax-1;
+            [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
+            
+            [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
+            darkJumps = find(diff(darkPer)>1);
+            if ~isempty(darkJumps)
+                darkPer(darkJumps(1)+1:end) = [];
+            end
+            
+            % Find when the stripe jumps
+            stripeJumps = find(diff(datNow.positionDatMatch.Trans)~=0)+1;
+            stripeJumps(end) = [];
+            
+            % Get the closed loop period before the stripe jumps
+            CLCompPer = [CLPer(1):stripeJumps(1)-1];
+            
+            % Find the offset distribution around these two periods
+            darkRng = darkPer(PVAStren(darkPer)>PVAThresh);
+            darkOffset = stripeMult*stripePos(darkPer)-PVAPlt(darkPer);
+            darkOffset(darkOffset>pi) = darkOffset(darkOffset>pi)-2*pi;
+            darkOffset(darkOffset<-pi) = darkOffset(darkOffset<-pi)+2*pi;
+            
+            CLRng = CLCompPer(PVAStren(CLCompPer)>PVAThresh);
+            CLOffset = stripeMult*stripePos(CLPer)-PVAPlt(CLPer);
+            CLOffset(CLOffset>pi) = CLOffset(CLOffset>pi)-2*pi;
+            CLOffset(CLOffset<-pi) = CLOffset(CLOffset<-pi)+2*pi;
+            
+            % Plot the distributions
+            subplot(5,5,21+2*(condID-1));
+            hold on;
+            h1 = histogram(darkOffset,offsetBins);
+            h1.FaceColor = 'k';
+            h1.FaceAlpha = 0.1;
+            xlim([-pi pi]);
+            xticks([-pi 0 pi]);
+            ylim([0 600]);
+            box off;
+            if condID == 1
+                ylabel('counts');
+            end
+            xlabel('offset (rad)');
+            
+            subplot(5,5,22+2*(condID-1));
+            h2 = histogram(CLOffset,offsetBins);
+            h2.FaceColor = 'b';
+            h2.FaceAlpha = 0.1;
+            xlim([-pi pi]);
+            xticks([-pi 0 pi]);
+            ylim([0 600]);
+            box off;
+            xlabel('offset (rad)');
+        end
+    end     
+end
+
+% Now plot the quantification
+subplot(5,5,[20 25]);
+hold on;
+
+allDark = zeros(2,9);
+allCL = zeros(2,9);
+
+for condID = 1:2
+    for flyID = 1:cond{condID}.numFlies
+        meanDark = 0;
+        meanCL = 0;
+        for trialID = 1:length(cond{condID}.allFlyData{flyID}.All)
+            meanDark = meanDark + cond{condID}.allFlyData{flyID}.(trialName){trialID}.darkPVA;
+            meanCL = meanCL + cond{condID}.allFlyData{flyID}.(trialName){trialID}.CLPVA;
+        end
+        meanDark = meanDark./length(cond{condID}.allFlyData{flyID}.All);
+        meanCL = meanCL./length(cond{condID}.allFlyData{flyID}.All);
+        
+        scatter(condID-1,meanDark,40,'k','filled');
+        scatter(condID-0.5,meanCL,40,'b','filled');
+        alpha(0.5);
+        plot([condID-1 condID-0.5],[meanDark meanCL],'k');
+        
+        allDark(condID,flyID) = meanDark;
+        allCL(condID,flyID) = meanCL;
+    end
+end
+xlim([-0.5 2]);
+ylim([0 1]);
+ylabel('circular variance');
+xticks([0 0.5 1 1.5]);
+xticklabels({'dark','stripe','dark','stripe'});
+text(0,-0.2,'empty gal4');
+text(1,-0.2,'76B06');
+
+[h,p] = ttest(squeeze(allDark(1,:)),squeeze(allCL(1,:)))
+[h,p] = ttest(squeeze(allDark(2,:)),squeeze(allCL(2,:)))
 
 %% Diagram the PVA - Figure 1 I
 
 % Load the average, registered stack
-%load('C:\Users\turnerevansd\Documents\RawAnalysis\Shi\EmptyGal4\20190813\Fly4_4-6days_6fx25957_ShixEmptyGal4_30C_All_00002_RegDat.mat');
-tifName = 'Fly4_4-6days_6fx25957_ShixEmptyGal4_30C_All_00002.tif';
+tifName = strcat(dataDir,'TuBu\20190813\Fly4_4-6days_6fx25957_ShixEmptyGal4_30C_All_00002.tif');
 allPathnameNow = 'C:\Users\turnerevansd\Documents\TheNeuroanatomicalUltrastructureAndFunctionOfABiologicalRingAttractor\Data\'; % Replace this with your dir
 [stackMaxIntNow, stackMean] = ImDatLoadBigtiff(tifName,allPathnameNow,0);
 frame2plt = 1;
@@ -168,7 +362,7 @@ axis equal;
 axis off;
 
 %Load and plot the ROIs
-load('C:\Users\turnerevansd\Documents\RawAnalysis\Shi\EmptyGal4\20190813\Fly4_4-6days_6fx25957_ShixEmptyGal4_30C_ReferenceROIs.mat');
+load(strcat(dataDir,'TuBu\20190813\Fly4_4-6days_6fx25957_ShixEmptyGal4_30C_ReferenceROIs.mat'));
 for roiPlt = 1:2
     posNow = position{roiPlt};
     posNow = vertcat(posNow,posNow(1,:));
