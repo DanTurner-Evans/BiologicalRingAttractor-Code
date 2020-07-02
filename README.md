@@ -10,4 +10,4 @@ is included in this repository and at https://github.com/KrisJensen/EMpaper. The
 - Analyzing and plotting calcium **Imaging** data
 - Analyzing and plotting **RNA-Seq** data
 
-The FigureToCodeMap contains a list of each data plot in the paper figures and the corresponding script used to analyze the data and generate the plot
+The FigureToCodeMap contains a list of each data plot in the paper figures and the corresponding script used to analyze the data and generate the plot. Each of the directories also contains a further readme that explains how to obtain the necessary data and to run the code.
