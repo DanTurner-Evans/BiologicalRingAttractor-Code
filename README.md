@@ -2,7 +2,9 @@
  
 Code from:
 Turner-Evans ...
-DOI
+
+https://doi.org/DOI
+
 is included in this repository and at https://github.com/KrisJensen/EMpaper. The latter repository contains code relating to FAFB skeleton and synapse extraction, analysis, and plotting, and NEURON simulations. This repo contains code relating to:
 
 - Plotting flies **Behavior** when central complex neurons are silenced using the temperature sensitive, synaptic vesicle reuptake inhibitor Shibire<sup>ts</sup>
