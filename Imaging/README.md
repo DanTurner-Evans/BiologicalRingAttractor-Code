@@ -4,10 +4,10 @@ Using the function in the **utils** directory, calcium imaging data can be analy
 
 Data for these functions can be found here:
 
-Shi data: https://doi.org/10.25378/janelia.12490313
+*Shi* data: https://doi.org/10.25378/janelia.12490313
 
-Two color data: https://doi.org/10.25378/janelia.12490274
+*Two color* data: https://doi.org/10.25378/janelia.12490274
 
-Kir data: https://doi.org/10.25378/janelia.12490325
+*Kir* data: https://doi.org/10.25378/janelia.12490325
 
-One color data: https://doi.org/10.25378/janelia.12490373
+*One color* data: https://doi.org/10.25378/janelia.12490373
