@@ -13,6 +13,17 @@ cond{1}.dirs{6} = strcat(dataDir,'20180226');
 
 cond = FlyDatLoad(1,cond);
 
+%% Specify parameters to use throughout the analyses
+condNow = 1;
+
+% Thresholds to determine when the fly is moving
+vRThresh = pi/10;
+vFThresh = 0.1;
+
+% Set S-G filter parameters for the velocity
+sgolayOrder = 3;
+sgolayFrames = 11;
+
 %% Activity plots, including those from Figure 3F
 
 % Choose a length of time to plot
@@ -31,147 +42,149 @@ angs = linspace(-pi,pi,17);
 angs(end) = [];
 angs = angs + mean(diff(angs));
 
-% Step through the conditions
-for condID = 1:length(cond)
-    coldFig = figure('units','normalized','outerposition',[0 0 1 1]);
-    hotFig = figure('units','normalized','outerposition',[0 0 1 1]);
-    coldPltID = 0;
-    hotPltID = 0;
-    
-    % Step through the flies
-    for flyID = 1:cond{condID}.numFlies
-        if ~ismember(flyID,fly2plt{condID})
-            continue;
+% Initialize the figures
+coldFig = figure('units','normalized','outerposition',[0 0 1 1]);
+hotFig = figure('units','normalized','outerposition',[0 0 1 1]);
+coldPltID = 0;
+hotPltID = 0;
+
+% Step through the flies
+for flyID = 1:cond{condID}.numFlies
+    if ~ismember(flyID,fly2plt{condID})
+        continue;
+    end
+
+    % Step through the temperatures
+    for hcID = 1:2
+        if hcID == 1
+            if condID == 1 & (flyID > 4)
+                trialName = 'Stripe';
+            else
+                trialName = 'All';
+            end
+        elseif hcID == 2
+            if condID == 1 & (flyID > 4)
+                trialName = 'Stripe_30C';
+            else
+                trialName = 'All_30C';
+            end
         end
-        
-        % Step through the temperatures
-        for hcID = 1:2
+
+        % Step through the trials
+        for trialID = 1:length(cond{condID}.allFlyData{flyID}.(trialName))
             if hcID == 1
-                if condID == 1 & (flyID > 4)
-                    trialName = 'Stripe';
-                else
-                    trialName = 'All';
+                if trialID ~= coldTrials{condID}(flyID)
+                    continue;
                 end
-            elseif hcID == 2
-                if condID == 1 & (flyID > 4)
-                    trialName = 'Stripe_30C';
-                else
-                    trialName = 'All_30C';
+                coldPltID = coldPltID + 1;
+                figure(coldFig);
+                pltID = coldPltID;
+            else
+                if trialID ~= hotTrials{condID}(flyID)
+                    continue;
+                end
+                hotPltID = hotPltID + 1;
+                figure(hotFig);
+                pltID = hotPltID;
+            end
+
+            % Pull the data
+            datNow = cond{condID}.allFlyData{flyID}.(trialName){trialID};
+
+            % Find the different visual conditions
+            [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
+
+            % Get the calcium data
+            DF = datNow.ROIaveMax-1;
+
+            % Get the time points
+            tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
+            tPts = tPts - tPts(1);
+
+            % Get the heading
+            heading = datNow.positionDatMatch.OffsetRotMatch(:,2);
+
+            % Calculate the PVA
+            [angs, PVAPlt, PVAStren] = PVA(DF);
+            for tStep = 2:length(PVAPlt)
+                if abs(PVAPlt(tStep)-PVAPlt(tStep-1))>pi
+                    PVAPlt(tStep-1) = NaN;
                 end
             end
-            
-            % Step through the trials
-            for trialID = 1:length(cond{condID}.allFlyData{flyID}.(trialName))
-                if hcID == 1
-                    if trialID ~= coldTrials{condID}(flyID)
-                        continue;
-                    end
-                    coldPltID = coldPltID + 1;
-                    figure(coldFig);
-                    pltID = coldPltID;
-                else
-                    if trialID ~= hotTrials{condID}(flyID)
-                        continue;
-                    end
-                    hotPltID = hotPltID + 1;
-                    figure(hotFig);
-                    pltID = hotPltID;
-                end
-                    
-                % Pull the data
-                datNow = cond{condID}.allFlyData{flyID}.(trialName){trialID};
-                
-                % Find the different visual conditions
-                [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
-                
-                % Get the calcium data
-                DF = datNow.ROIaveMax-1;
-                
-                % Get the time points
-                tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
-                tPts = tPts - tPts(1);
-                
-                % Get the heading
-                heading = datNow.positionDatMatch.OffsetRotMatch(:,2);
-                
-                % Calculate the PVA
-                [angs, PVAPlt, PVAStren] = PVA(DF);
-                for tStep = 2:length(PVAPlt)
-                    if abs(PVAPlt(tStep)-PVAPlt(tStep-1))>pi
-                        PVAPlt(tStep-1) = NaN;
-                    end
-                end
-                PVAWeak = find(PVAStren<0.1);
-                PVAPlt(PVAWeak) = NaN;
-                
-                
-                % Plot the activity during the closed loop period
-                tPlt = tPts(CLPer);
-                tPlt = tPlt - tPlt(1);
-                if condID == 1
-                    subplot(4,2,pltID)
-                else
-                    subplot(4,2,2-mod(pltID,2)+4*floor((pltID-1)/2));
-                end
-                hold on;
-                imagesc(tPlt,angs,DF(:,CLPer))
-                xlim([tPlt(1) t2Plt]);
-                ylim([-pi pi]);
-                ylabel('EB act. (rad)');
-                set(gca,'YTick',[-pi, 0, pi],'YTickLabels',{'-p','0','p'});
-                if condID == 1
-                    colorbar;
-                    xlabel('time (s)');
-                    caxis([0 2]);
-                else
-                    plot(tPlt,PVAPlt(CLPer),'Color',[0.25 0.25 0.5]);
-                    caxis([0 1.25]);
-                end
-                
-                if condID == 2
-                    subplot(4,2,4-mod(pltID,2)+4*floor((pltID-1)/2));
-                    hold on;
-                    plot(tPlt,heading(CLPer));
-                    plot(tPlt,PVAPlt(CLPer),'Color',[0.25 0.25 0.5]);
-                    xlim([tPlt(1) t2Plt]);
-                    xlabel('time (s)');
-                    ylim([-pi pi]);
-                    ylabel('heading (rad)')
-                    set(gca,'YTick',[-pi, 0, pi],'YTickLabels',{'-p','0','p'});
-                end
-                
+            PVAWeak = find(PVAStren<0.1);
+            PVAPlt(PVAWeak) = NaN;
+
+
+            % Plot the activity during the closed loop period
+            tPlt = tPts(CLPer);
+            tPlt = tPlt - tPlt(1);
+            if condID == 1
+                subplot(4,2,pltID)
+            else
+                subplot(4,2,2-mod(pltID,2)+4*floor((pltID-1)/2));
             end
-            colormap(brewermap(64, 'Blues'));
-            
-            if condID == 2 & hotPltID== 3
-                subplot(4,2,6);
+            hold on;
+            imagesc(tPlt,angs,DF(:,CLPer))
+            xlim([tPlt(1) t2Plt]);
+            ylim([-pi pi]);
+            ylabel('EB act. (rad)');
+            set(gca,'YTick',[-pi, 0, pi],'YTickLabels',{'-p','0','p'});
+            if condID == 1
                 colorbar;
+                xlabel('time (s)');
+                caxis([0 2]);
+            else
+                plot(tPlt,PVAPlt(CLPer),'Color',[0.25 0.25 0.5]);
                 caxis([0 1.25]);
             end
+
+            if condID == 2
+                subplot(4,2,4-mod(pltID,2)+4*floor((pltID-1)/2));
+                hold on;
+                plot(tPlt,heading(CLPer));
+                plot(tPlt,PVAPlt(CLPer),'Color',[0.25 0.25 0.5]);
+                xlim([tPlt(1) t2Plt]);
+                xlabel('time (s)');
+                ylim([-pi pi]);
+                ylabel('heading (rad)')
+                set(gca,'YTick',[-pi, 0, pi],'YTickLabels',{'-p','0','p'});
+            end
+
+        end
+        colormap(brewermap(64, 'Blues'));
+
+        if condID == 2 & hotPltID== 3
+            subplot(4,2,6);
+            colorbar;
+            caxis([0 1.25]);
         end
     end
 end
 
 %% PVA Strength plot from Figure 3G
 
-vRThresh = pi/10;
-vFThresh = 0.1;
-condNow = 1;
-
+% Initialize the figure
 PVAStrenSummary = figure('units','normalized','outerposition',[0 0 0.25 0.5]);
 subplot(1,3,1);
 hold on;
+
+% Step through the flies
 for flyID = 1:cond{condNow}.numFlies
     
+    % Get the trial names
     trialNames = fields(cond{condNow}.allFlyData{flyID});
     
+    % Step through the trials
     for trialType = 2:3
         for trialID = 1:min(3,length(cond{condNow}.allFlyData{flyID}.(trialNames{trialType})))
             
+            % Get the data for this trial
             datNow = cond{condNow}.allFlyData{flyID}.(trialNames{trialType}){trialID};
             
+            % Calculate the PVA
             [angs, PVAPlt, PVAStren] = PVA(datNow.ROIaveMax-min(min(datNow.ROIaveMax)));
             
+            % Get the behavioral data
             vR = datNow.positionDatMatch.vRot;
             vR = sgolayfilt(vR,3,11);
             vF = datNow.positionDatMatch.vF;
@@ -200,34 +213,23 @@ end
 
 %% Plots for Figure S5;
 
-% Specify that we're looking at the stripe trails
-condNow = 1;
-
-% Specify the fly on interest
+% Specify the fly of interest
 flyID2Plt = 3;
 trialIDs = [2,2];
-
-
-% Set S-G filter parameters for the velocity
-sgolayOrder = 3;
-sgolayFrames = 11;
-
-% Make sure the fly is active
-vRThresh = pi/10;
-vFThresh = 0.1;
 
 % Create a vector to hold the mean EB activity
 meanEBact = zeros(2,2,10);
 
-% 
+% Bin the velocities
 vREdges = linspace(0,pi,17);
 vFEdges = linspace(0,2,17);
 
-% Step through the flies
+% Plot example data
 actProf = figure('units','normalized','outerposition',[0 0 1 1]);   
 for hc = 1:2
     for flyID = flyID2Plt
     
+        % Get the trial names
         trialNames = fields(cond{1}.allFlyData{flyID});
         trialNow = trialIDs(hc);
         if hc == 1
@@ -239,20 +241,24 @@ for hc = 1:2
         % Step through the second and third trials
         for trialID = trialNow
 
-            % Pull out important info.
+            % Pull out the data for this trial
             datNow = cond{condNow}.allFlyData{flyID}.(trialName){trialID};
 
+            % Get the different visual conditions used in the trial
             [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
             if ~isempty(find(diff(darkPer)>1))
                 darkPer(find(diff(darkPer)>1)+1:end) = [];
             end
 
+            % Get the behavioral data
             tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
             vR = datNow.positionDatMatch.vRot;
             vR = sgolayfilt(vR,sgolayOrder,sgolayFrames);
 
+            % Find the mean activity
             meanAct = mean(datNow.ROIaveMax,1)-1;
 
+            % Plot it!
             subplot(5,4,8*(hc-1) +[1:2]);
             hold on;
             plot(tPts(darkPer),meanAct(darkPer),'k');
@@ -285,9 +291,11 @@ for hc = 1:2
     end
 end
 
+% Get the mean activity over all trials for all flies
 for hc = 1:2
     for flyID = 1:cond{condNow}.numFlies
     
+        % Get the trial names
         trialNames = fields(cond{1}.allFlyData{flyID});
         if hc == 1
             trialName = trialNames{3};
@@ -305,24 +313,28 @@ for hc = 1:2
         % Step through the second and third trials
         for trialID = trialStart:trialEnd
 
-            % Pull out important info.
+            % Pull out the data for this trial
             datNow = cond{condNow}.allFlyData{flyID}.(trialName){trialID};
 
+            % Find the visual conditions used in the trial
             [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
             if ~isempty(find(diff(darkPer)>1))
                 darkPer(find(diff(darkPer)>1)+1:end) = [];
             end
 
+            % Get the behavioral data
             tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
             vR = datNow.positionDatMatch.vRot;
             vR = sgolayfilt(vR,sgolayOrder,sgolayFrames);
             vF = datNow.positionDatMatch.vF;
             vF = sgolayfilt(vF,sgolayOrder,sgolayFrames);
             
+            % Get the periods where the fly is active
             flyAct = union(find(vR>vRThresh),find(vF>vFThresh));
             darkPer = intersect(darkPer,flyAct);
             CLPer = intersect(CLPer,flyAct);
-            
+           
+            % Get the mean activity
             meanAct = mean(datNow.ROIaveMax,1)-1;
             
             actDark = [actDark meanAct(darkPer)];
@@ -334,6 +346,7 @@ for hc = 1:2
     end
 end
 
+% Plot the mean activity
 for hc = 1:2
     for flyID = 1:cond{condNow}.numFlies
         subplot(5,4,8*(hc-1) +[3 7]);
@@ -355,11 +368,13 @@ for hc = 1:2
     end
 end
 
+% Find the p values
 [h,p] = ttest(meanEBact(1,1,:),meanEBact(1,2,:))
 [h,p] = ttest(meanEBact(2,1,:),meanEBact(2,2,:))
 [h,p] = ttest(meanEBact(1,1,:)-meanEBact(1,2,:),...
     meanEBact(2,1,:)-meanEBact(2,2,:))
 
+% Look at the activity crosscorrelation with velocity
 % Step through the flies
 for flyID = 1:cond{condNow}.numFlies
     

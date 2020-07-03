@@ -21,14 +21,31 @@ cond{2}.dirs{5} = strcat(dataDir,'Delta7\20191203');
 
 cond = FlyDatLoad(1,cond);
 
+
+%% Specify parameters used throughout the analyses
+% Set a PVA threshold
+PVAThresh = 0.075;
+
+% Set a time window
+minT = 5;
+
+% Set savitzky-golay filter parameters 
+filtParam1 = 3;
+filtParam2 = 11;
+
+% Set thresholds to determine if the fly is moving
+vFThresh = 0.1;
+vRThresh = pi/10;
+
+% Bins for the slopes and fits
+RBins = linspace(-1,1,11);
+slopeBins = linspace(-4,4,21);
+
+
 %% Plot the behavior - Figure S12 E,F
 
 % Specify the histogram bins
 pHistEdges = linspace(-pi,pi,32);
-
-% Set a threshold on movement
-vRThresh = 0.1*pi;
-vFThresh = 0.1;
 
 % Specify colors for each fly
 colCode = hsv(2*5);
@@ -118,20 +135,6 @@ xlabel('mean angle');
 ylabel('counts');
 
 %% Make a summary figure - Figure 3 K, P-S, Figure S6 D
-
-% Set a PVA threshold
-PVAThresh = 0.075;
-
-% Set a time window
-minT = 5;
-
-% Set savitzky-golay filter parameters 
-filtParam1 = 3;
-filtParam2 = 11;
-
-% Set thresholds to determine if the fly is moving
-vFThresh = 0.1;
-vRThresh = pi/10;
 
 % Set up the figure and choose example flies
 SummaryFig = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -227,8 +230,8 @@ end
 colormap(brewermap(64, 'Blues'));     
 
 % Look at the data within a sliding window
-
-% First, chunk up the data by bouts where the bump can be tracked
+% Specify bins for plotting the r and slope values for linear fits between
+% PVA and heading
 RBins = linspace(-1,1,11);
 slopeBins = linspace(-4,4,21);
 
@@ -257,11 +260,6 @@ for condID = 1:length(cond)
                 else
                     visCond = 'CL';
                 end
-                
-                chunkedDat.Fly = flyID;
-                chunkedDat.FlyPositionUnwrapNorm_All = {};
-                chunkedDat.BumpPositionUnwrapNorm_All = {};
-                boutCount = 0;
 
                 for trialID = trialStart:trialStop
 
@@ -457,10 +455,6 @@ end
 % Plot the behavior
 pHistEdges = linspace(-pi,pi,32);
 
-% Set a threshold on movement
-vRThresh = 0.1*pi;
-vFThresh = 0.1;
-
 for condID = 1:length(cond)
     for flyID = 1:cond{condID}.numFlies
         for hc = 1:2
@@ -488,20 +482,25 @@ for condID = 1:length(cond)
                         continue;
                     end
                 end
+                
+                % Get data for this trial
                 datNow = cond{condID}.allFlyData{flyID}.(trialType){trialID};
                 
+                % Get the behavioral data
                 tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
                 tPts = tPts-tPts(1);
                 heading = datNow.positionDatMatch.OffsetRotMatch(:,2);
                 vR = datNow.positionDatMatch.vRot;
                 vF = datNow.positionDatMatch.vF;
                 
+                % Determine the visual conditions
                 [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
                 darkSkip = darkPer(find(diff(darkPer)>1));
                 darkPer(darkSkip(1)+1:end) = [];
                 
                 CLPer(find(tPts(CLPer)<tPts(CLPer(1))+30)) = [];
                 
+                % Bin the data for periods when the fly is moving
                 flyMov = intersect(find(vR(CLPer)>vRThresh),find(vF(CLPer)>vFThresh));
                 [N,angEdge] = histcounts(heading(CLPer(flyMov)),pHistEdges);
                 arrowAng = circ_mean((angEdge(1:end-1)+mean(diff(angEdge))/2)',N');
@@ -530,22 +529,16 @@ end
 
 %% Look at R2 fits for various window sizes
 
-% Set a PVA threshold.
-PVAThresh = 0.075;
-
 % Specify a range of times to look at
 minTs = [1:15];
 
-% Set the savitzky-golay filter parameters
-filtParam1 = 3;
-filtParam2 = 11;
-
-% Bin the slopes and fits
-RBins = linspace(-1,1,11);
-slopeBins = linspace(-4,4,21);
-
+% Initialize the figure
 StatPlt = figure('units','normalized','outerposition',[0 0 1 1]);
+
+% Initialize an array to hold all of the R2 values
 allRsAcrossFlies = zeros(length(cond),5,2,2,length(minTs));
+
+% Step through the different window sizes
 for minT = minTs
     for condID = 1:length(cond)  
         for flyID = 1:cond{condID}.numFlies
@@ -562,6 +555,7 @@ for minT = minTs
                     pltCol = 'r';
                 end
 
+                % Step through the visual conditions
                 for visID = 1:2
                     allRs = [];
                     allSlopes = [];
@@ -577,31 +571,33 @@ for minT = minTs
                             continue;
                         end
                     end
-                    chunkedDat.Fly = flyID;
-                    chunkedDat.FlyPositionUnwrapNorm_All = {};
-                    chunkedDat.BumpPositionUnwrapNorm_All = {};
-                    boutCount = 0;
 
+                    % Step through the trials
                     for trialID = trialStart:trialStop
 
                         if trialID >= length(cond{condID}.allFlyData{flyID}.(trialType))
                             continue;
                         end
-                            
+                          
+                        % Pull the data for this trial
                         datNow = cond{condID}.allFlyData{flyID}.(trialType){trialID};
 
+                        % Get the visual conditions during the trial
                         [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
                         darkEnd = find(diff(darkPer)>1);
                         if ~isempty(darkEnd)
                             darkPer(darkEnd+1:end) = [];
                         end
 
+                        % Get the behavioral data
                         tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
                         heading = datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+                        % Get the calcium activity
                         DF = sgolayfilt(datNow.ROIaveMax, filtParam1, filtParam2, [], 2);
                         [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
 
+                        % Determine the time period to consider
                         per = {};
                         if strcmp(visCond,'Dark')
                             per{1} = darkPer;
@@ -610,6 +606,7 @@ for minT = minTs
                             per{1} = CLPer;
                         end
 
+                        % Step through the time period
                         for perNow = 1:length(per)
                             PVANow = UnWrap(PVAPlt(per{perNow}),1.5,0);
                             PVAStrenNow = PVAStren(per{perNow});
@@ -618,6 +615,7 @@ for minT = minTs
 
                             wind = round(minT/mean(diff(tPtsNow)));
 
+                            % Look at each window
                             for tStep = 1:length(per{perNow})-wind+1
                                 range = [tStep:tStep+wind-1];
                                 if ~isempty(find(PVAStrenNow(range)<PVAThresh))
@@ -643,6 +641,7 @@ for minT = minTs
     end
 end
 
+% Plot the data across flies and conditions
 for condID = 1:length(cond)  
     for flyID = 1:cond{condID}.numFlies
         for hc = 1:2
@@ -672,14 +671,7 @@ end
 
 %% Look at stats for different sliding window lengths
 
-% Set PVA threshold and savitzky-golay filter parameters
-PVAThresh = 0.075;
-filtParam1 = 3;
-filtParam2 = 11;
-
-RBins = linspace(-1,1,11);
-slopeBins = linspace(-4,4,21);
-
+% Step through different time windows
 for minT = [3 5 7]
     StatPlt = figure('units','normalized','outerposition',[0 0 1 1]);
     for condID = 1:length(cond)  
@@ -697,6 +689,7 @@ for minT = [3 5 7]
                     pltCol = 'r';
                 end
 
+                % Step through the visual conditions
                 for visID = 1:2
                     allRs = [];
                     allSlopes = [];
@@ -705,11 +698,8 @@ for minT = [3 5 7]
                     else
                         visCond = 'CL';
                     end
-                    chunkedDat.Fly = flyID;
-                    chunkedDat.FlyPositionUnwrapNorm_All = {};
-                    chunkedDat.BumpPositionUnwrapNorm_All = {};
-                    boutCount = 0;
 
+                    % Step through the trials
                     for trialID = trialStart:trialStop
                         % Skip trials where the fly tracking failed
                         if condID == 1 & hc == 1 & flyID == 6 & trialID == 2
@@ -719,20 +709,25 @@ for minT = [3 5 7]
                             continue;
                         end
 
+                        % Get the data for the current trial
                         datNow = cond{condID}.allFlyData{flyID}.(trialType){trialID};
 
+                        % Get the visual conditions during the trial
                         [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
                         darkEnd = find(diff(darkPer)>1);
                         if ~isempty(darkEnd)
                             darkPer(darkEnd+1:end) = [];
                         end
 
+                        % Get the behavioral data
                         tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
                         heading = datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+                        % Get the calcium imaging data
                         DF = sgolayfilt(datNow.ROIaveMax, filtParam1, filtParam2, [], 2);
                         [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
 
+                        % Get the time points to consider
                         per = {};
                         if strcmp(visCond,'Dark')
                             per{1} = darkPer;
@@ -741,6 +736,7 @@ for minT = [3 5 7]
                             per{1} = CLPer;
                         end
 
+                        % Step through the different time periods
                         for perNow = 1:length(per)
                             PVANow = UnWrap(PVAPlt(per{perNow}),1.5,0);
                             PVAStrenNow = PVAStren(per{perNow});
@@ -749,6 +745,8 @@ for minT = [3 5 7]
 
                             wind = round(minT/mean(diff(tPtsNow)));
 
+                            % Look at each window, calculating the fit
+                            % between PVA and heading in that period
                             for tStep = 1:length(per{perNow})-wind+1
                                 range = [tStep:tStep+wind-1];
                                 if ~isempty(find(PVAStrenNow(range)<PVAThresh))
@@ -797,9 +795,6 @@ for minT = [3 5 7]
 end
 
 %% Plot the bump width and amplitude as a function of vR
-
-% Set the PVA threshold
-PVAThresh = 0.075;
 
 % Specify the bins for the rotational velocity
 vRBins = linspace(0,1.5*pi,13);
@@ -881,9 +876,6 @@ end
 
 %% Plot the bump width and amplitude as a function of vR - means - Figure S6 E,F
 
-% Set the PVA threshold
-PVAThresh = 0.075;
-
 % Choose the visual condition
 visCond = 'Dark';
 
@@ -955,25 +947,10 @@ end
 
 %% Run stats for the median slope and slopes percentile range
 
-% Set the PVA threshold
-PVAThresh = 0.075;
-
-% Set the time window size 
-minT = 5;
-
-% Set the Savitzky-Golay window parameters
-filtParam1 = 3;
-filtParam2 = 11;
-
-% Set movement thresholds
-vFThresh = 0.1;
-vRThresh = pi/10;
-
+% Initialize the figure
 SummaryFig = figure('units','normalized','outerposition',[0 0 1 1]); 
 
 % Bin the values
-RBins = linspace(-1,1,11);
-slopeBins = linspace(-4,4,21);
 allPerc = zeros(2,7,2,2);
 allMedSlopes = zeros(2,7,2,2);
 for condID = 1:length(cond)  
@@ -991,6 +968,7 @@ for condID = 1:length(cond)
                 pltCol = 'r';
             end
             
+            % Step through the visual conditions
             for visID = 1:2
                 allRs = [];
                 allSlopes = [];
@@ -1000,11 +978,7 @@ for condID = 1:length(cond)
                     visCond = 'CL';
                 end
                 
-                chunkedDat.Fly = flyID;
-                chunkedDat.FlyPositionUnwrapNorm_All = {};
-                chunkedDat.BumpPositionUnwrapNorm_All = {};
-                boutCount = 0;
-
+                % Step through the trials
                 for trialID = trialStart:trialStop
 
                     % Skip trials where the fly tracking failed
@@ -1019,20 +993,26 @@ for condID = 1:length(cond)
                             continue;
                         end
                     end
+                    
+                    % Get the data for the current trial
                     datNow = cond{condID}.allFlyData{flyID}.(trialType){trialID};
 
+                    % Get the visual conditions during the trial
                     [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
                     darkEnd = find(diff(darkPer)>1);
                     if ~isempty(darkEnd)
                         darkPer(darkEnd+1:end) = [];
                     end
 
+                    % Get the behavioral data
                     tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
                     heading = datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+                    % Get the calcium activity
                     DF = sgolayfilt(datNow.ROIaveMax, filtParam1, filtParam2, [], 2);
                     [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
 
+                    % Specify the time points to consider
                     per = {};
                     if strcmp(visCond,'Dark')
                         per{1} = darkPer;
@@ -1049,6 +1029,8 @@ for condID = 1:length(cond)
 
                         wind = round(minT/mean(diff(tPtsNow)));
                         
+                        % Look at each window, calculating the fit
+                        % between PVA and heading in that period
                         for tStep = 1:length(per{perNow})-wind+1
                             range = [tStep:tStep+wind-1];
                             if ~isempty(find(PVAStrenNow(range)<PVAThresh))
@@ -1134,16 +1116,6 @@ visCond = 'CL';
 % Select the number of point to sample
 numPtsToSamp = 10;
 
-% Set a PVA threshold
-PVAThresh = 0.075;
-
-% Select the window length
-minT = 5;
-
-% Set filtering parameters
-filtParam1 = 3;
-filtParam2 = 11;
-
 % Create the figure
 SummaryFig = figure('units','normalized','outerposition',[0 0 1 1]);
 
@@ -1162,6 +1134,7 @@ for condID = condIDs
                 pltCol = [1 0 0];
             end
             
+            % Step through the visual conditions
             for visID = 1:2
                 allRs = [];
                 allSlopes = [];
@@ -1184,22 +1157,28 @@ for condID = condIDs
                 ylabel('PVA (rad)');
                 title(cond{condID}.name)
                 
+                % Step through the trial
                 for trialID = trialStart:trialStop
 
+                    % Get the data for the current trial
                     datNow = cond{condID}.allFlyData{flyID}.(trialType){trialID};
 
+                    % Get the visual conditions during the trial
                     [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
                     darkEnd = find(diff(darkPer)>1);
                     if ~isempty(darkEnd)
                         darkPer(darkEnd+1:end) = [];
                     end
 
+                    % Get the behavioral data
                     tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
                     heading = datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+                    % Get the calcium activity and calculate the PVA
                     DF = sgolayfilt(datNow.ROIaveMax, filtParam1, filtParam2, [], 2);
                     [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
 
+                    % Determine the time points to consider
                     per = {};
                     if strcmp(visCond,'Dark')
                         per{1} = darkPer;
@@ -1218,6 +1197,8 @@ for condID = condIDs
                         
                         sampTs = round((length(per{perNow})-wind+1)*rand(numPtsToSamp,1));
                         
+                        % Look at each window, calculating the fit
+                        % between PVA and heading in that period
                         for tStep = 1:length(per{perNow})-wind+1
                             range = [tStep:tStep+wind-1];
                             if ~isempty(find(PVAStrenNow(range)<PVAThresh))

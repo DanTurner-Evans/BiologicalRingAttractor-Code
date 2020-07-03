@@ -24,31 +24,67 @@ cond{2}.dirs{6} = strcat(dataDir,'TuBu\20191204');
 
 cond = FlyDatLoad(1,cond);
 
+
+%% Specify parameters to be used throughout the paper
+
+% Set the PVA threshold
+PVAThresh = 0.075;
+
+% The stripe "jumps" across the screen from +/- 120 deg to -/+ 120 deg, so
+% stretch it to cover a fll 360 deg
+stripeMult = 360/240;
+
+% Set parameters for filtering the data
+minT = 10;
+filtParam1 = 3;
+filtParam2 = 11;
+
+% Set thresholds to determine when the fly is active
+vFThresh = 0.1;
+vRThresh = pi/10;
+
+
+
 %% Look at the offset distribution in the dark and in the initial closed loop period
 
-trialName = 'All_30C';
-PVAThresh = 0.075;
-stripeMult = 360/240;
+% Specify whether to look at the restrictive or permissive temperatures
+trialName = 'All_30C'; %'All'
+
+% Specify the offset bins to consider
 offsetBins = linspace(-pi,pi,17);
 offsetCents = offsetBins;
 offsetCents(end) = [];
 offsetCents = offsetCents + 0.5*mean(diff(offsetCents));
 
+% Initialize the figure
 offsetStats = figure('units','normalized','outerposition',[0 0 1 1]);
+
+% Step through the conditions
 for condID = 1:length(cond)
+    
+    % Initialize additional figures (one for each condition)
     offsetDist = figure('units','normalized','outerposition',[0 0 1 1]);
+    
+    % Step through the flies
     for flyID = 1:cond{condID}.numFlies
+        
+        % Step through the trials
         for trialID = 1:length(cond{condID}.allFlyData{flyID}.(trialName))
+            
+            % Pull the data for this trial
             datNow = cond{condID}.allFlyData{flyID}.(trialName){trialID};
             
+            % Get the behavioral info
             tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
             tPts = tPts - tPts(1);
             heading = pi/180*datNow.positionDatMatch.PosRotMatch;
             stripePos = datNow.positionDatMatch.OffsetRotMatch(:,2);
             
+            % Get the activity and the PVA
             DF = datNow.ROIaveMax-1;
             [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
             
+            % Find the visual conditions during the trial
             [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
             darkJumps = find(diff(darkPer)>1);
             if ~isempty(darkJumps)
@@ -129,25 +165,32 @@ for condID = 1:length(cond)
 end
 
 %% Make a summary figure for the paper - Figure 6 G-J
+
+% Initialize the figure
 paperFig = figure('units','normalized','outerposition',[0 0 1 1]);
 
+% Specify whether to plot the permissive or restrictive trials 
 trialName = 'All_30C';%All
-PVAThresh = 0.075;
 
-% Now plot example of the bump over time
+% Specify the example flies and trials to consider
 flies = [2,1];%[2,5]
 trials = [2,3];%[1,1]
 
+% Now plot example of the bump over time
 for condID = 1:length(cond)
     for flyID = flies(condID)
         for trialID = trials(condID)
+            
+            % Get the data for the given trial
             datNow = cond{condID}.allFlyData{flyID}.(trialName){trialID};
 
+            % Get the behavioral data
             tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
             tPts = tPts - tPts(1);
             heading = pi/180*datNow.positionDatMatch.PosRotMatch;
             stripePos = 360/240*datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+            % Format the data for plotting
             headingPlt = heading;
             stripePosPlt = UnWrap(stripePos,2,0);
 %             for tStep = 2:length(tPts)
@@ -159,6 +202,7 @@ for condID = 1:length(cond)
 %                 end
 %             end
 
+            % Get the calcium activity and calculate the PVA
             DF = datNow.ROIaveMax-1;
             [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
             angs = angs-0.5*mean(diff(angs));
@@ -170,6 +214,7 @@ for condID = 1:length(cond)
                 end
             end
 
+            % Find the visual conditions during the trial
             [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
             darkJumps = find(diff(darkPer)>1);
             if ~isempty(darkJumps);
@@ -214,27 +259,31 @@ for condID = 1:length(cond)
     colormap(brewermap(64, 'Blues'));
 end
 
-% Plot examples of the offset distribution
-PVAThresh = 0.075;
-stripeMult = 360/240;
+% Specify the bins for the offset distribution
 offsetBins = linspace(-pi,pi,17);
 offsetCents = offsetBins;
 offsetCents(end) = [];
 offsetCents = offsetCents + 0.5*mean(diff(offsetCents));
 
+% Plot examples of the offset distribution
 for condID = 1:length(cond)
     for flyID = flies(condID)
         for trialID = trials(condID)
+            
+            % Get the data for this trial
             datNow = cond{condID}.allFlyData{flyID}.(trialName){trialID};
             
+            % Get the behavioral data
             tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
             tPts = tPts - tPts(1);
             heading = pi/180*datNow.positionDatMatch.PosRotMatch;
             stripePos = datNow.positionDatMatch.OffsetRotMatch(:,2);
             
+            % Get the activity and calculate the PVA
             DF = datNow.ROIaveMax-1;
             [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
             
+            % Find the visual conditions during the trial
             [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
             darkJumps = find(diff(darkPer)>1);
             if ~isempty(darkJumps)
@@ -334,6 +383,7 @@ allPathnameNow = 'C:\Users\turnerevansd\Documents\TheNeuroanatomicalUltrastructu
 frame2plt = 1;
 meanRegStack = squeeze(stackMaxIntNow(:,:,frame2plt));%-mean(stackMaxIntNow,3));
 
+% Initialize the figure
 paperFig = figure('units','normalized','outerposition',[0 0 1 1]);
 
 % Rotate it
@@ -429,23 +479,32 @@ ylim([-0.5 1.5]);
 axis off;
 
 %% Make a summary figure for the paper - plot the room temperature trials - Figure S9
+
+% Initialize the figure
 paperFig = figure('units','normalized','outerposition',[0 0 1 1]);
 
+% Specify the room temperature trials
 trialName = 'All';
 
-% Now plot example of the bump over time
+% Specify the flies and trials to plot
 flies = [3,2];
 trials = [2,2];
+
+% Now plot example of the bump over time
 for condID = 1:length(cond)
     for flyID = flies(condID)
         for trialID = trials(condID)
+            
+            % Get the data for the trial
             datNow = cond{condID}.allFlyData{flyID}.(trialName){trialID};
 
+            % Get the behaviroal data
             tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
             tPts = tPts - tPts(1);
             heading = pi/180*datNow.positionDatMatch.PosRotMatch;
             stripePos = 360/240*datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+            % Format it for plotting
             headingPlt = heading;
             stripePosPlt = UnWrap(stripePos,2,0);
 %             for tStep = 2:length(tPts)
@@ -457,6 +516,7 @@ for condID = 1:length(cond)
 %                 end
 %             end
 
+            % Get the activity and calculate the PVA
             DF = datNow.ROIaveMax-1;
             [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
             angs = angs-0.5*mean(diff(angs));
@@ -468,6 +528,7 @@ for condID = 1:length(cond)
                 end
             end
 
+            % Find the visual conditions during the trial
             [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
             darkJumps = find(diff(darkPer)>1);
             if ~isempty(darkJumps);
@@ -515,18 +576,10 @@ end
 
 %% Plot the bump statistics - bump width, bump amplitude, bump stability
 
-PVAThresh = 0.075;
-
-headingScale = 360/240;
-
-minT = 10;
-filtParam1 = 3;
-filtParam2 = 11;
-
-vFThresh = 0.1;
-vRThresh = pi/10;
-
+% Initialize a summary figure
 SummaryFig = figure('units','normalized','outerposition',[0 0 1 1]);
+
+% Specify the example conditions, flies, and trials
 condIDs = [1,2];
 flyIDs = [2,1];
 trialIDs_Cold = [1,2];
@@ -544,22 +597,27 @@ for condID = condIDs
             trialType = 'All_30C';
         end
         
+        % Get the data for the given trial
         datNow = cond{condID}.allFlyData{flyID}.(trialType){trialID};
                 
+        % Get the behavioral data
         tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
         tPts = tPts-tPts(1);
         heading = headingScale*datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+        % Determine when the fly is moving
         vR = datNow.positionDatMatch.vRot;
         vF = datNow.positionDatMatch.vF;
         flyStop = intersect(find(vR<vRThresh),find(vF<vFThresh));
         
+        % Get the visual conditions during the trial
         [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
         darkSkip = darkPer(find(diff(darkPer)>1));
         darkPer(darkSkip(1)+1:end) = [];
 
         CLPer(find(tPts(CLPer)<tPts(CLPer(1))+30)) = [];
         
+        % Specify plotting variables
         if strcmp(visCond,'dark')
             plotRng = darkPer;
             pltCol = 'k';
@@ -569,8 +627,10 @@ for condID = condIDs
             tPts = tPts - tPts(CLPer(1));
         end
         
+        % Get the calcum activity
         DF = sgolayfilt(datNow.ROIaveMax-1, filtParam1, filtParam2, [], 2);
 
+        % Calculate the PVA
         [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
         
         PVAPaused = PVAPlt;
@@ -580,6 +640,7 @@ for condID = condIDs
             end
         end
         
+        % Unwrap the data for plotting
         PVAUnwrap = UnWrap(PVAPlt,2,0);
         headingUnwrap = UnWrap(heading,2,0);
 
@@ -611,14 +672,20 @@ end
 colormap(brewermap(64, 'Blues'));     
 
 
-% First, chunk up the data by bouts where the bump can be tracked
+% Calculate the R2 values and slope for a fit between PVA and heading
+
+% Specify the bins for plotting
 RBins = linspace(-1,1,11);
 slopeBins = linspace(-4,4,21);
 
 for condID = 1:length(cond)  
     for flyID = 1:cond{condID}.numFlies
+        
+        % Initialize arrays to hold the slope percentile range and median
         allPerc = zeros(2,2);
         allMedSlopes = zeros(2,2);
+        
+        % Step through the hot and cold conditions
         for hc = 1:2
             if hc == 1
                 trialType = 'All';
@@ -632,6 +699,7 @@ for condID = 1:length(cond)
                 pltCol = 'r';
             end
             
+            % Step through the visual conditions
             for visID = 1:2
                 allRs = [];
                 allSlopes = [];
@@ -641,22 +709,28 @@ for condID = 1:length(cond)
                     visCond = 'CL';
                 end
 
+                % Step through the trials
                 for trialID = trialStart:trialStop
 
+                    % Get the data for the current trial
                     datNow = cond{condID}.allFlyData{flyID}.(trialType){trialID};
 
+                    % Determine the visual conditions during the trial
                     [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
                     darkEnd = find(diff(darkPer)>1);
                     if ~isempty(darkEnd)
                         darkPer(darkEnd+1:end) = [];
                     end
 
+                    % Get the behavioral data
                     tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
                     heading = headingScale*datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+                    % Get the calcium activity
                     DF = sgolayfilt(datNow.ROIaveMax, filtParam1, filtParam2, [], 2);
                     [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
 
+                    % Select the period of the trial to analyze
                     per = {};
                     if strcmp(visCond,'Dark')
                         per{1} = darkPer;
@@ -665,6 +739,8 @@ for condID = 1:length(cond)
                         per{1} = CLPer;
                     end
 
+                    % Step through the time points, considering a window at
+                    % each time to compare the PVA and the heading
                     for perNow = 1:length(per)
                         PVANow = UnWrap(PVAPlt(per{perNow}),1.5,0);
                         PVAStrenNow = PVAStren(per{perNow});
@@ -805,11 +881,9 @@ for condID = 1:length(cond)
     end
 end
 
-pHistEdges = linspace(-pi,pi,32);
 
-% Set a threshold on movement
-vRThresh = 0.1*pi;
-vFThresh = 0.1;
+% Plot the fly's behavior over the course of the trial
+pHistEdges = linspace(-pi,pi,32);
 
 for condID = 1:length(cond)
     for flyID = 1:cond{condID}.numFlies
@@ -878,6 +952,7 @@ for condID = 1:length(cond)
     end
 end
 
+% Find the bump widths - in the dark
 visCond = 'Dark';
 allWids = zeros(2,2,10);
 for hc = 1:2
@@ -896,6 +971,7 @@ for hc = 1:2
     end
 end
 
+% Plot the bump widths - in the dark
 for condID = 1:length(cond)
     for flyID = 1:cond{condID}.numFlies
         subplot(6,6,[26 27 32 33])
@@ -917,6 +993,7 @@ for condID = 1:length(cond)
     end
 end
 
+% Find the bump widths - with a closed-loop stripe
 visCond = 'CL';
 allWids = zeros(2,2,10);
 for hc = 1:2
@@ -935,6 +1012,7 @@ for hc = 1:2
     end
 end
 
+% Plot the bump widths - with a closed-loop stripe
 for condID = 1:length(cond)
     for flyID = 1:cond{condID}.numFlies
         subplot(6,6,[29 30 35 36])
@@ -957,17 +1035,6 @@ for condID = 1:length(cond)
 end
 
 %% Plot the bump statistics - bump width, bump amplitude, bump stability - ctrl at RT only
-
-PVAThresh = 0.075;
-
-headingScale = 360/240;
-
-minT = 10;
-filtParam1 = 3;
-filtParam2 = 11;
-
-vFThresh = 0.1;
-vRThresh = pi/10;
 
 SummaryFig = figure('units','normalized','outerposition',[0 0 1 1]);
 

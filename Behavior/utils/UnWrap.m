@@ -1,6 +1,16 @@
-%% Function to Unwrap data
-
 function unWrapped = UnWrap(data,scale,correct)
+% unWrapped = UnWrap(data,scale,correct)
+%   Unwrap circular date - note that MATLAB has a built in unwrap function
+%   to do this. I apologize for the redundancy
+%
+%   Input:
+%     data   	the data to be unwrapped
+%     scale     scales how big of a jump should be unwrapped
+%     correct   0 or 1 to manually specify points to unwrap
+%
+%   Output:
+%     unWrapped	the unwrapped data
+
 unWrapped = data;
 flip = (max(data)-min(data))/scale;
 
@@ -12,6 +22,7 @@ for i=1:length(unWrapped)-1
     end
 end
 
+% manually unwrap points
 if correct
     h = figure;
     subplot(2,1,1);

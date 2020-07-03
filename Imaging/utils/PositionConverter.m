@@ -1,7 +1,18 @@
-%Calculate forward and rotational positions from dx, dy values
-
 function [posRot, posFor, posLat] = PositionConverter(positionDat,date)
+% [posRot, posFor, posLat] = PositionConverter(positionDat,date)
+%   Calculate forward and rotational positions from the raw dx and dy values
+%   from the ball tracker
+%
+%   Input:
+%     positionDat   a structure holding the experimental data
+%     date          the date that the experiment was performed
+%
+%   Output:
+%     posRot        the fly's angle
+%     posFor        the fly's forward position
+%     posLat        the fly's lateral position
 
+    % The ball was calibrated differently at each of these dates
     if date > 20190820
         Cam1RotCalibfact = 1.83;
         Cam2RotCalibfact = 1.31;
@@ -18,13 +29,16 @@ function [posRot, posFor, posLat] = PositionConverter(positionDat,date)
         Cam1PosCalibfact = 126;%125;
         Cam2PosCalibfact = 126;%153;
     end
+    % The angle of the fly on the ball
     flyAng = 30*pi/180;
 
+    % Correct for the fly angle
     dxmod0 = double(positionDat.dx0).*cos(flyAng) + double(positionDat.dy0).*sin(flyAng);
     dymod0 = double(positionDat.dy0).*cos(flyAng) + double(positionDat.dx0).*sin(flyAng);
     dxmod1 = double(positionDat.dx1).*cos(flyAng) + double(positionDat.dy1).*sin(-flyAng);
     dymod1 = double(positionDat.dy1).*cos(flyAng) + double(positionDat.dx1).*sin(-flyAng);
 
+    % Calculate the positions
 	deltaFor = (dymod0 / Cam1PosCalibfact + dymod1 / Cam2PosCalibfact)*sqrt(2) / 2;
     deltaSide = (dymod0 / Cam1PosCalibfact - dymod1 / Cam2PosCalibfact)*sqrt(2) / 2;
     posRot(1) = positionDat.OffsetRot(1);

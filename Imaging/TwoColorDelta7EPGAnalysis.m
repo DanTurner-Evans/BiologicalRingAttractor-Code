@@ -13,16 +13,17 @@ cond{2}.dirs{2} = strcat(dataDir,'RedEPGsGreenDelta7s\20170707');
 cond = FlyDatLoad(2,cond);
 
 
-%% Align the peaks and plot the normalized mean values as sorted by velocity - Figure 4 I 
+%% Specify parameters to be used in multiple analyses
+glomShift = 3; % How many glomeruli to shift the data for display
+vRMin = 0; % min rotational velocity bin
+vRMax = 720; % max rotational velocity bin
+vRSpan = 60; % span of rotational velocities
 
-glomShift = 3;
-vRMin = 0;
-vRMax = 720;
-vRSpan = 60;
-
+% The glomeruli where the neurons of interest arborize
 redSpan = [2:17];
 greenSpan = [2:17];
 
+% Color maps
 blues = brewermap(64, 'Blues');
 greens(:,1) = blues(:,1);
 greens(:,2) = blues(:,3);
@@ -33,14 +34,24 @@ magentas(:,2) = blues(:,1);
 magentas(:,3) = blues(:,3);
 colorAssign = linspace(0,0.5,64);
 
-
+% Align the bumps
 [LPB1.dark.dataR, RPB1.dark.dataR, LPB1.dark.dataG, RPB1.dark.dataG] = ...
     BumpAlignOnePeak(cond{1}.allFlyData,vRMin,vRMax,vRSpan,redSpan(1:8),greenSpan(1:8),'Dark',glomShift);
 [LPB2.dark.dataR, RPB2.dark.dataR, LPB2.dark.dataG, RPB2.dark.dataG] = ...
     BumpAlignOnePeak(cond{2}.allFlyData,vRMin,vRMax,vRSpan,redSpan(1:8),greenSpan(1:8),'Dark',glomShift);
 
+% Find the number of velocity bins
 vRBinNum = round((vRMax-vRMin)/vRSpan);
 
+% Specify the number of ROIs and get the correspondin angles
+num_ROIs = 8;
+angsraw = (1:num_ROIs)*2*pi/num_ROIs-pi;
+angsraw = angsraw';
+
+
+%% Align the peaks and plot the normalized mean values as sorted by velocity - Figure 4 I 
+
+% Step through the conditions
 for condNow = 1:2
     
     if condNow == 1
@@ -53,31 +64,34 @@ for condNow = 1:2
     
     PBFig = figure('units','normalized','outerposition',[0 0 1 1]);
 
-    num_ROIs = 8;
-    angsraw = (1:num_ROIs)*2*pi/num_ROIs-pi;
-    angsraw = angsraw';
-
+    % Set the range of values to plot
     plotRange = 180/vRSpan;
+    
+    % Step through the flies
     for flyID = 1:cond{condNow}.numFlies
 
+        % Start by looking at the periods where the fly is stopped
         LPBDataRAllStop = LPB.dark.dataR{flyID}.Stop;
         RPBDataRAllStop = RPB.dark.dataR{flyID}.Stop;
         LPBDataGAllStop = LPB.dark.dataG{flyID}.Stop;
         RPBDataGAllStop = RPB.dark.dataG{flyID}.Stop;
 
-        % Plot the dark data
+        % Find the mean signal and normalize it
+        % For the right and left red channel data
         LRStop = mean(LPBDataRAllStop,2);
         LRStop = (LRStop-min(LRStop(redSpan(1:8))))./(max(LRStop)-min(LRStop(redSpan(1:8))));
         RRStop = mean(RPBDataRAllStop,2);
         RRStop = (RRStop-min(RRStop(greenSpan(1:8))))./(max(RRStop)-min(RRStop(greenSpan(1:8))));
         RStop = vertcat(LRStop,RRStop);
 
+        % For the right and left green channel data
         LGStop = mean(LPBDataGAllStop,2);
         LGStop = (LGStop-min(LGStop(greenSpan(1:8))))./(max(LGStop)-min(LGStop(greenSpan(1:8))));
-        RGStop = median(RPBDataGAllStop,2);
+        RGStop = mean(RPBDataGAllStop,2);
         RGStop = (RGStop-min(RGStop(redSpan(1:8))))./(max(RGStop)-min(RGStop(redSpan(1:8))));
         GStop = vertcat(LGStop,RGStop);
 
+        % Find the peak locations and the difference between peaks
         LRPk = find(LRStop == max(LRStop));
         LGPk = find(LGStop == max(LGStop));
         pkDiffL = min(abs(LGPk-LRPk),9-abs(LGPk-LRPk));
@@ -85,6 +99,7 @@ for condNow = 1:2
         RGPk = find(RGStop == max(RGStop));
         pkDiffR = min(abs(RRPk-RGPk),9-abs(RRPk-RGPk));
 
+        % Plot the actiivty profiles
         subplot(2*cond{condNow}.numFlies,2*(plotRange+1),1+4*(plotRange+1)*(flyID-1))
         LBinR = mean(LPBDataRAllStop,2);
         RBinR = mean(RPBDataRAllStop,2);
@@ -146,6 +161,7 @@ for condNow = 1:2
         title(strcat('stopped, Fly ',num2str(flyID)));
 
 
+        % Now, do the same as above for the CW turns
         for binID=1:plotRange
             LPBDataRAllCW = LPB.dark.dataR{flyID}.CW{binID};
             RPBDataRAllCW = RPB.dark.dataR{flyID}.CW{binID};
@@ -229,6 +245,7 @@ for condNow = 1:2
                 title(strcat(num2str(vRSpan*(binID-1)),'-',num2str(vRSpan*binID),' deg/s CW'));
             end
 
+            % Now, do as above for the CCW turns
             LPBDataRAllCCW = LPB.dark.dataR{flyID}.CCW{binID};
             RPBDataRAllCCW = RPB.dark.dataR{flyID}.CCW{binID};
             LPBDataGAllCCW = LPB.dark.dataG{flyID}.CCW{binID};
@@ -347,26 +364,34 @@ text(11,length(colorAssign),num2str(max(colorAssign)));
 axis off;
 
 
-%% Do LM with activity peak, rotational velocity, and forward velocity
+%% Run linear regressions with activity peak, rotational velocity, and forward velocity
 
+% Specify the glomeruli to look at
 PBRange = [2:9];
 
+% Pick the number of lead/lag time points to consider
 numtPts = 51;
 
+% Step through the conditions
 for condNow = 1:2
     
+    % Initialize a figure
     figure;
     
+    % Step through the flies
     for flyID = 1:cond{condNow}.numFlies
         
+        % Initialize arrays to hold the regression coefficients
         lrCoefR = zeros(numtPts,3);
         lrCoefG = zeros(numtPts,3);
         
+        % Initialize arrays to hold the behavioral and imaging data
         vRot = [];
         vF = [];
         RMaxVals = [];
         GMaxVals = [];
         
+        % Step through the trials, concatentating the data together
         for trial = 1:length(cond{condNow}.allFlyData{flyID}.Dark)
            vRot = vertcat(vRot, ...
                cond{condNow}.allFlyData{flyID}.Dark{trial}.positionDatMatch.vRot);
@@ -378,6 +403,7 @@ for condNow = 1:2
                max(cond{condNow}.allFlyData{flyID}.Dark{trial}.GROIaveMax(PBRange,2:end))');
         end
         
+        % Sort the velocity
         vCW = zeros(size(vRot));
         vCCW = zeros(size(vRot));
         vPos = find(vRot > 0);
@@ -386,6 +412,7 @@ for condNow = 1:2
         vCCW(vNeg) = abs(vRot(vNeg));
         vPred = horzcat(zscore(vCW),zscore(vCCW),zscore(vF)); 
         
+        % Calculate the regression coefficients
         for tStep = 1:numtPts
             lrCoefR(tStep,:) = ...
                 regress(...
@@ -397,6 +424,7 @@ for condNow = 1:2
                 vPred(floor(numtPts/2):end-ceil(numtPts/2),:));
         end
         
+        % Plot!
         subplot(2,cond{condNow}.numFlies,flyID);
         hold on;
         plot(lrCoefR(:,1),'b');
@@ -415,14 +443,19 @@ end
 
 %% Look at relationship between red and green peak values 
 
+% Specify the glomeruli to look at
 PBRange = [2:9];
 
+% Step through the conditions
 for condNow = 1:2
     
+    % Initialize the figure
     figure;
     
+    % Step through the flies
     for flyID = 1:cond{condNow}.numFlies
         
+        % Look at the maximum values
         RMaxVals = [];
         GMaxVals = [];
         
@@ -441,8 +474,9 @@ for condNow = 1:2
     
 end
 
+
 %% Load an example tiff - Figure 4 G
-pathName = 'C:\Users\turnerevansd\Dropbox (HHMI)\2019_EMPaper\Manuscript\Data\TwoColor\GreenEPGsRedDelta7s\20170717\';
+pathName = 'C:\Users\turnerevansd\Documents\TheNeuroanatomicalUltrastructureAndFunctionOfABiologicalRingAttractor\Data\TwoColor\GreenEPGsRedDelta7s\20170717\';
 tiffFilename = 'Fly2_3-4day_6fx60D05_jRGCx55G08_Dark_00001.tif';
 
 behavFilename = 'Fly2_3-4day_6fx60D05_jRGCx55G08_Dark_01.TXT';
@@ -488,25 +522,32 @@ RminCa = RmaxCa/4;% min(min(min(RstackXYfiltMax)));
 GminCa = GmaxCa/6;% min(min(min(GstackXYfiltMax)));
 imFreq = 10000/mean(diff(positionDat.tFrameGrab))/num_planes; 
 
+% Pick example time points to plot
 exPoint1 = round(imFreq*38.7);
 exPoint2 = round(imFreq*42.7);
 exPoint3 = round(imFreq*51.7);
 
+% Initialize the figure
 TwoPop = figure('Position',[50 50 800 1000]);
 
+% Find the mean red activity
 RMean = mean(RstackMaxInt(60:160,:,:),3);
 RMean = RMean./max(max(RMean));
 
+% Plot the mean red activity
 subplot(6,4,1);
 imshow(RMean);
 
+% Find the mean green activity
 GMean = mean(GstackMaxInt(60:160,:,:),3);
 GMean = GMean./max(max(GMean));
 
+% Plot the mean green activity
 subplot(6,4,5);
 imshow(GMean);
 
-% Create the colored images from the two stacks
+% Create the colored images from the two stacks for the various time points
+% and plot them
 curRFrame = 2*(RstackXYfiltMax(60:160,:,exPoint1)-...
     RminCa)./(RmaxCa-RminCa);
 curGFrame = 6*(GstackXYfiltMax(60:160,:,exPoint1)-...
@@ -649,41 +690,16 @@ line([t2 t2],[1 18],'Color','w','LineStyle','--');
 line([t3 t3],[1 18],'Color','w','LineStyle','--');
 line([tAll(1) tAll(end)],[9.5 9.5],'Color','w');
 
-set(TwoPop,'PaperPositionMode','manual','PaperOrientation','portrait','PaperUnits','inches','PaperPosition',[0 0 8.5 11]);
-print(TwoPop,strcat('C:\Users\turnerevansd\Documents\D7s\Results\ExampleBumps'),'-dpdf');
-
-
 
 %% Plot the offsets as a function of velocity - Figure 4 J, Figure S6 C
 
-glomShift = 3;
-vRMin = 0;
-vRMax = 720;
-vRSpan = 60;
-
-redSpan = [2:17];
-greenSpan = [2:17];
-
-blues = brewermap(64, 'Blues');
-greens(:,1) = blues(:,1);
-greens(:,2) = blues(:,3);
-greens(:,3) = blues(:,2);
-magentas = blues;
-magentas(:,1) = blues(:,3);
-magentas(:,2) = blues(:,1);
-magentas(:,3) = blues(:,3);
-colorAssign = linspace(0,0.5,64);
-
-
-[LPB1.dark.dataR, RPB1.dark.dataR, LPB1.dark.dataG, RPB1.dark.dataG] = ...
-    BumpAlignOnePeak(cond{1}.allFlyData,vRMin,vRMax,vRSpan,redSpan(1:8),greenSpan(1:8),'Dark',glomShift);
-[LPB2.dark.dataR, RPB2.dark.dataR, LPB2.dark.dataG, RPB2.dark.dataG] = ...
-    BumpAlignOnePeak(cond{2}.allFlyData,vRMin,vRMax,vRSpan,redSpan(1:8),greenSpan(1:8),'Dark',glomShift);
-
-vRBinNum = round((vRMax-vRMin)/vRSpan);
+% Initialize the figure
 PBFig = figure('units','normalized','outerposition',[0 0 1 1]);
+
+% Step through the conditions
 for condNow = 1:2
     
+    % Specify data and plotting parameters for each condition
     if condNow == 1
         LPB = LPB1;
         RPB = RPB1;
@@ -696,31 +712,34 @@ for condNow = 1:2
         scatColR = [0.8 0.2 0.4];
     end
 
-    num_ROIs = 8;
-    angsraw = (1:num_ROIs)*2*pi/num_ROIs-pi;
-    angsraw = angsraw';
-
+    % Specify the plot range
     plotRange = 180/vRSpan;
+    
+    % Step through the flies
     for flyID = 1:cond{condNow}.numFlies
 
+        % Start by looking at the periods where the fly is stopped
         LPBDataRAllStop = LPB.dark.dataR{flyID}.Stop;
         RPBDataRAllStop = RPB.dark.dataR{flyID}.Stop;
         LPBDataGAllStop = LPB.dark.dataG{flyID}.Stop;
         RPBDataGAllStop = RPB.dark.dataG{flyID}.Stop;
 
-        % Plot the dark data
+        % Find the mean signal and normalize it
+        % For the right and left red channel data
         LRStop = mean(LPBDataRAllStop,2);
         LRStop = (LRStop-min(LRStop(redSpan(1:8))))./(max(LRStop)-min(LRStop(redSpan(1:8))));
         RRStop = mean(RPBDataRAllStop,2);
         RRStop = (RRStop-min(RRStop(greenSpan(1:8))))./(max(RRStop)-min(RRStop(greenSpan(1:8))));
         RStop = vertcat(LRStop,RRStop);
 
+        % For the right and left green channel data
         LGStop = mean(LPBDataGAllStop,2);
         LGStop = (LGStop-min(LGStop(greenSpan(1:8))))./(max(LGStop)-min(LGStop(greenSpan(1:8))));
         RGStop = median(RPBDataGAllStop,2);
         RGStop = (RGStop-min(RGStop(redSpan(1:8))))./(max(RGStop)-min(RGStop(redSpan(1:8))));
         GStop = vertcat(LGStop,RGStop);
 
+        % Find the peak locations and the difference between peaks
         LRPk = find(LRStop == max(LRStop));
         LGPk = find(LGStop == max(LGStop));
         pkDiffL = min(abs(LGPk-LRPk),9-abs(LGPk-LRPk));
@@ -728,6 +747,7 @@ for condNow = 1:2
         RGPk = find(RGStop == max(RGStop));
         pkDiffR = min(abs(RRPk-RGPk),9-abs(RRPk-RGPk));
         
+        % Find the PVA difference between peaks
         PVADiffL = abs(circ_mean(angsraw,LGStop(2:9))-circ_mean(angsraw,LRStop(2:9)))...
             *num_ROIs/(2*pi);
         PVADiffL = min(PVADiffL,8-PVADiffL);
@@ -735,6 +755,7 @@ for condNow = 1:2
             *num_ROIs/(2*pi);
         PVADiffR = min(PVADiffR,8-PVADiffR);
 
+        % Plot the max difference and PVA difference between peaks
         subplot(2,2,1);
         hold on;
         scatter(0,pkDiffL,20,scatColL,'filled');
@@ -753,6 +774,7 @@ for condNow = 1:2
         ylim([0 5]);
         set(gca,'XTick',[-180:30:180])
 
+        % As above, not for clockwise turns
         for binID=1:plotRange
             LPBDataRAllCW = LPB.dark.dataR{flyID}.CW{binID};
             RPBDataRAllCW = RPB.dark.dataR{flyID}.CW{binID};
@@ -795,6 +817,7 @@ for condNow = 1:2
 
             end
 
+            % As above, not for counterclockwise turns
             LPBDataRAllCCW = LPB.dark.dataR{flyID}.CCW{binID};
             RPBDataRAllCCW = RPB.dark.dataR{flyID}.CCW{binID};
             LPBDataGAllCCW = LPB.dark.dataG{flyID}.CCW{binID};
@@ -968,20 +991,10 @@ ylim([-pi pi]);
 
 %% Find the mean and sd of the offset across flies
 
-glomShift = 3;
-vRMin = 0;
-vRMax = 720;
-vRSpan = 720;
-
-redSpan = [2:17];
-greenSpan = [2:17];
-
-[LPB1.dark.dataR, RPB1.dark.dataR, LPB1.dark.dataG, RPB1.dark.dataG] = ...
-    BumpAlignOnePeak(cond{1}.allFlyData,vRMin,vRMax,vRSpan,redSpan(1:8),greenSpan(1:8),'Dark',glomShift);
-[LPB2.dark.dataR, RPB2.dark.dataR, LPB2.dark.dataG, RPB2.dark.dataG] = ...
-    BumpAlignOnePeak(cond{2}.allFlyData,vRMin,vRMax,vRSpan,redSpan(1:8),greenSpan(1:8),'Dark',glomShift);
-
+% Initialize an array to hold the offsets
 allOffsets = []
+
+% Step through the conditions
 for condNow = 1:2
     
     if condNow == 1
@@ -992,10 +1005,7 @@ for condNow = 1:2
         RPB = RPB2;
     end
     
-    num_ROIs = 8;
-    angsraw = (1:num_ROIs)*2*pi/num_ROIs-pi;
-    angsraw = angsraw';
-
+    % Step through the flies
     for flyID = 1:cond{condNow}.numFlies
 
         LPBDataRAll = [LPB.dark.dataR{flyID}.Stop LPB.dark.dataR{flyID}.CW{1} LPB.dark.dataR{flyID}.CCW{1}];
@@ -1003,7 +1013,6 @@ for condNow = 1:2
         LPBDataGAll = [LPB.dark.dataG{flyID}.Stop  LPB.dark.dataG{flyID}.CW{1} LPB.dark.dataG{flyID}.CCW{1}];
         RPBDataGAll = [RPB.dark.dataG{flyID}.Stop  RPB.dark.dataG{flyID}.CW{1} RPB.dark.dataG{flyID}.CCW{1}];
 
-        % Plot the dark data
         LR = mean(LPBDataRAll,2);
         RR = mean(RPBDataRAll,2);
 

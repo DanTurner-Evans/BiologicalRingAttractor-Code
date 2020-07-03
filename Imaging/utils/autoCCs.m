@@ -1,4 +1,16 @@
 function [tLags, CCVals] = autoCCs(tPts,velVals,actVals,numPts)
+% [tLags, CCVals] = autoCCs(tPts,velVals,actVals,numPts)
+%   Find the autocorrelation between velocity and calcium activity
+%
+%   Input:
+%     tPts          the time points for the data
+%     velVals       the velocity values at those times
+%     actVals       the activity values at those times
+%     numPts        the number of points to shift for the autocorrelation
+%
+%   Output:
+%     tLags         the time lags for the output correlations
+%     CCVals        the correlation values
 
     CCVals = zeros(numPts,1);
     

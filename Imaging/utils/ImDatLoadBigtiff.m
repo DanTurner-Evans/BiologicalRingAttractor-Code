@@ -1,5 +1,16 @@
-%% Load the imaging and DAQ data from a 2D VR experiment
 function [stackMaxIntRot, stackMeanRot] = ImDatLoadBigtiff(imageFilename,imagePathname,rotAng)
+% [stackMaxIntRot, stackMeanRot] = ImDatLoadBigtiff(imageFilename,imagePathname,rotAng)
+%   Load the imaging and DAQ data from a 2D VR experiment
+%
+%   Input:
+%     imageFilename    the filename for the imaging data
+%     imagePathname    the path for the imaging data
+%     rotAng           the rotation of the imaging plane relative to the
+%     fly's head
+%
+%   Output:
+%     stackMaxIntRot   rotated, maximum intensity stacks of the imaging data
+%     stackMeanRot     rotated, mean intensity stacks of the imaging data
 
 % Get the tiff header info
 fullpath = strcat(imagePathname,imageFilename);

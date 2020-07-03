@@ -1,5 +1,22 @@
-%% Load the imaging and DAQ data from a two color, 2D VR experiment
 function [RstackMaxIntRot, GstackMaxIntRot, RstackMeanRot, GstackMeanRot] = ImDatLoadBigtiff2Color(imageFilename,imagePathname,rotAng)
+% [stackMaxIntRot, stackMeanRot] = ImDatLoadBigtiff(imageFilename,imagePathname,rotAng)
+%   Load the imaging and DAQ data from a two color, 2D VR experiment
+%
+%   Input:
+%     imageFilename    the filename for the imaging data
+%     imagePathname    the path for the imaging data
+%     rotAng           the rotation of the imaging plane relative to the
+%     fly's head
+%
+%   Output:
+%     RstackMaxIntRot   rotated, maximum intensity stacks of the imaging
+%     data for the red channel
+%     RstackMeanRot     rotated, mean intensity stacks of the imaging data
+%     for the red channel
+%     GstackMaxIntRot   rotated, maximum intensity stacks of the imaging
+%     data for the green channel
+%     GstackMeanRot     rotated, mean intensity stacks of the imaging data
+%     for the green channel
 
 % Get the tiff header info
 fullpath = strcat(imagePathname,imageFilename);

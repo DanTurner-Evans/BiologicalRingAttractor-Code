@@ -23,13 +23,18 @@ cond{2}.dirs{6} = strcat(dataDir,'Line2\20191204');
 
 cond = FlyDatLoad(2,cond);
 
+%% Specify parameters to be used in the analyses
+% Set the PVA threshold
+PVAThresh = 0.075;
+
+% Set the savitzky-golay filtering parameters
+sgolayOrder = 3;
+sgolayFrames = 11;
+
 %% Look at the mean DF/F, max DF/F, and PVA strength vs. vR - Figure 7 L,M, Figure S11 E,F,H,H,K
 
 % Set analysis parameters
 trialName = 'All';
-PVAThresh = 0.075;
-sgolayOrder = 3;
-sgolayFrames = 11;
 
 % Set the bins for the velocity histograms
 vREdges = linspace(0,pi,11);
@@ -260,13 +265,6 @@ paperFig = figure('units','normalized','outerposition',[0 0 1 1]);
 flies = [4,4];
 trials = [1,4];
 
-% Set the PVA threshold
-PVAThresh = 0.075;
-
-% Set the savitzky-golay filtering parameters
-sgolayOrder = 3;
-sgolayFrames = 11;
-
 % Plot the DF/F, the PVA, and the heading
 for condID = 1:length(cond)
     for flyID = flies(condID)
@@ -391,11 +389,6 @@ headingScale = 360/240;
 % Look at the control flies
 condID = 1;
 trialType = 'All';
-
-% Specify the filtering parameters
-filtParam1 = 3;
-filtParam2 = 11;
-PVAThresh = 0.075;
 
 pltCol = 'k';
 
@@ -540,7 +533,6 @@ xlabel('offset (rad)');
 
 % Look at the offset distribution in the dark and in the initial closed loop period
 trialName = 'All';
-PVAThresh = 0.075;
 stripeMult = 1;
 offsetBins = linspace(-pi,pi,17);
 offsetCents = offsetBins;
@@ -656,7 +648,7 @@ for flyID = 1:cond{condID}.numFlies
             heading = headingScale*datNow.positionDatMatch.OffsetRotMatch(:,2);
 
             % Get the Ca activity
-            DF = sgolayfilt(datNow.RROIaveMax, filtParam1, filtParam2, [], 2);
+            DF = sgolayfilt(datNow.RROIaveMax, sgolayOrder, sgolayFrames, [], 2);
             [angs, PVAPlt, PVAStren] = PVA(DF-min(min(DF)));
 
             per = {};

@@ -1,5 +1,14 @@
-%% Load the imaging and DAQ data from a 2D VR experiment
 function positionDat = VRDatLoad(posFilename,posPathname,recStim)
+% positionDat = VRDatLoad(posFilename,posPathname,recStim)
+%   Load the imaging and DAQ data from a 2D VR experiment
+%
+%   Input:
+%     posFilename    the filename of the position data
+%     posPathname    the pathname for the position data
+%     recStim        0 or 1 if optogenetic stimuation was used
+%
+%   Output:
+%     positionDat	 a structure holding the data
 
 % Get the DAQ info
 SYNCFilename = strcat(posFilename(1:end-4),'_SYNC',posFilename(end-3:end));
@@ -31,6 +40,7 @@ fclose(fileID);
 
 numDatPts = length(OffsetFor);
 
+% Populate the structure
 positionDat = {};
 positionDat.t = t(1:numDatPts);
 positionDat.OffsetRot = OffsetRot(1:numDatPts);

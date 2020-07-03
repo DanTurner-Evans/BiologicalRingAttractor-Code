@@ -11,33 +11,47 @@ cond{1}.dirs{4} = strcat(dataDir,'20190712');
 
 cond = FlyDatLoad(1,cond);
 
-%% Plot the activity vs. stripe position or dark - Fiure S8 C,D 
-
+%% Specify the parameters to use throughout the analyses
 condID = 1;
 
+% Filtering values
 sgolayOrder = 3;
 sgolayFrames = 11;
 
+%% Plot the activity vs. stripe position or dark - Figure S8 C,D 
+
+% Initialize the figures
 ActFig = figure('units','normalized','outerposition',[0 0 1 1]);
 RingZoomFig = figure('units','normalized','outerposition',[0 0 1 1]);
 SummaryFig = figure('units','normalized','outerposition',[0 0 1 0.5]);
 peaks = figure('units','normalized','outerposition',[0 0 0.25 0.5]);
 
+% Initialize an array to hold the stats
 allRingStats = zeros(4,cond{condID}.numFlies,10);
+
+% Step through the flies
 for flyID = 1:cond{condID}.numFlies
     figure(ActFig);
+    
+    % Structure to hold the activity across trials
     allRing = {};
+    
+    % Step through the trials
     for trialID = 1:length(cond{condID}.allFlyData{flyID}.OpenLoop)
         
+        % Pull the data for this trial
         datNow = cond{condID}.allFlyData{flyID}.OpenLoop{trialID};
         
+        % Get the visual conditions
         [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
         darkPerBreak = find(diff(darkPer)>1);
         darkPer(darkPerBreak(1)+1:end) = [];
         
+        % Get the behavioral data
         tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
         stripePos = datNow.positionDatMatch.OffsetRotMatch(:,2);
         
+        % Find when the stripe disappears behind the fly
         stripeInvis = find(abs(stripePos(OLPer))>2*pi/3);
         invisEnd = stripeInvis(find(diff(stripeInvis)>1));
         invisEnd = vertcat(invisEnd,stripeInvis(end));
@@ -46,6 +60,7 @@ for flyID = 1:cond{condID}.numFlies
         
         tPts = tPts-tPts(OLPer(1));
         
+        % Plot the stripe position
         subplot(7,10,flyID);
         hold on;
         plot(tPts(darkPer),zeros(length(darkPer),1),'k');
@@ -65,6 +80,7 @@ for flyID = 1:cond{condID}.numFlies
         ylim([-pi pi]);
         yticks([-pi, 0, pi]);
         
+        % Plot the activity
         subplot(7,10,flyID+10*trialID);
         hold on;
         
@@ -89,6 +105,9 @@ for flyID = 1:cond{condID}.numFlies
         allRing{trialID,2} = sgolayfilt(datNow.ROIaveMax(1,:)-1,sgolayOrder,sgolayFrames);
     end
     
+    
+    % Find the mean for the times when the fly is in the dark (neg) or when
+    % there is an open-loop stripe (pos)
     ring1 = allRing{1,2};
     posMean = ring1(find(allRing{1,1}>=0));
     negMean = ring1(find(allRing{1,1}<=0));
@@ -115,8 +134,10 @@ for flyID = 1:cond{condID}.numFlies
     posMean = posMean./trialID;
     negMean = negMean./trialID;
     
+    % Plot
     for figID = 1:2
         
+        % Pull the time points
         tPts = allRing{trialID,1};
         tPos = tPts(find(allRing{trialID,1}>=0));
         tNeg = tPts(find(allRing{trialID,1}<=0));
@@ -199,6 +220,7 @@ for flyID = 1:cond{condID}.numFlies
             ylim([-0.25 0.25]);
             plot([5.1*(flyID-1)-1.5 4+5.1*(flyID-1)],[0 0],'k','LineStyle','--');
             
+            % Calculate and plot the max and min activity in the different periods
             figure(peaks)        
             for vis = 1:5
                 subplot(1,2,1);
@@ -258,11 +280,7 @@ colormap(brewermap(64, 'Blues'));
 
 %% Run the above analyses, now for the glomeruli
 
-condID = 1;
-
-sgolayOrder = 3;
-sgolayFrames = 11;
-
+% Specify random colors for the glomeruli
 glomCols = rand(8,3);
 
 GlomAct = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -420,14 +438,18 @@ plot([0 11],[0 0],'Color','k');
 alpha(0.4);
 
 %% Plot the mean of the max and min across flies - Figure S8 E 
-condID = 1;
 
+% Make the figures
 figure;
 glomMaxMeansDark = [];
 glomMaxMeansStripeVis = [];
 glomMinMeansDark = [];
 glomMinMeansStripeVis = [];
+
+% Step through the flies
 for flyID = 1:cond{condID}.numFlies
+    
+    % Plot the stats
     subplot(1,2,1);
     hold on;
     scatter(1,mean(allRingStats(1,flyID,:)),40,[1 0 0.5],'filled');
@@ -474,6 +496,7 @@ ylabel('\Delta DF/F');
 plot([0 3],[0 0],'Color','k');
 alpha(0.4);
 
+% Calculate p values
 [h,p] = ttest(mean(allRingStats(1,:,:),3),mean(allRingStats(3,:,:),3)) % max
 [h,p] = ttest(mean(allRingStats(2,:,:),3),mean(allRingStats(4,:,:),3)) % min
 

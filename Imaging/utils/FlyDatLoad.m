@@ -1,4 +1,13 @@
 function cond = FlyDatLoad(numColors, cond)
+% cond = FlyDatLoad(numColors, cond)
+%   Load experimental data
+%
+%   Input:
+%     numColors     the number of colors in the imaging data
+%     cond          (optional) a structure containing the data directories
+%
+%   Output:
+%     cond          a structure containing the experimental data
 
     if nargin < 2
         %% Prompt the user for the root directory

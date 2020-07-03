@@ -2,6 +2,7 @@
 % Replace this path with your own path to the data.
 dataDir = 'C:\Users\turnerevansd\Documents\TheNeuroanatomicalUltrastructureAndFunctionOfABiologicalRingAttractor\Data\Behavior\';
 
+%% Choose one of the following datasets to load
 %% Specify the directories - AOTU
 numDirs = 6;
 saveName = '76B06';
@@ -11,7 +12,6 @@ allPathname{3} = strcat(dataDir,'TuBu\20170904\');
 allPathname{4} = strcat(dataDir,'TuBu\20170906\');
 allPathname{5} = strcat(dataDir,'TuBu\20170913\');
 allPathname{6} = strcat(dataDir,'TuBu\20180327\');
-
 %% Specify the directories - Empty Gal4
 numDirs = 5;
 saveName = 'EmptyGal4';
@@ -20,7 +20,6 @@ allPathname{2} = strcat(dataDir,'ctrl\20170819\');
 allPathname{3} = strcat(dataDir,'ctrl\20170905\');
 allPathname{4} = strcat(dataDir,'ctrl\20170907\');
 allPathname{5} = strcat(dataDir,'ctrl\20180327\');
-
 %% Specify the directories - E-PGs
 numDirs = 3;
 saveName = 'SS96';

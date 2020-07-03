@@ -29,8 +29,16 @@ end
 %% For the open loop part of the trials, average the mean activity vs. position - Figure S8 A
 
 act = figure('units','normalized','outerposition',[0 0 1 1]);
+
+% Specify the current ring neuron
 RNNow = 1;
+
+% Discretize the stripe position
 inpRng = linspace(-pi,pi,43);
+
+% Create a matrix to hold the 1D receptive fields
+
+% Step through the flies
 RFs = zeros(total_RNs,length(inpRng));
 for flyID = 1:cond{1}.numFlies
     if ndims(cond{1}.allFlyData{flyID}.All{1}.GROIaveMax) == 2
@@ -38,12 +46,15 @@ for flyID = 1:cond{1}.numFlies
     else
         num_RNs = size(cond{1}.allFlyData{flyID}.All{1}.GROIaveMax,1);
     end
+    
+    % Step through the ring neurons
     for RN = 1:num_RNs
         allCWRot = {};
         allCWAct = {};
         allCCWRot = {};
         allCCWAct = {};
         
+        % Step through the trials
         for trialID = 1:length(cond{1}.allFlyData{flyID}.All)
         
             % Get the stripe position
@@ -67,12 +78,14 @@ for flyID = 1:cond{1}.numFlies
             startPtsCCW = negCCWPer(find(stepCCWPer>1))+1;
             endPtsCCW = vertcat(startPtsCCW(2:end)-1,negCCWPer(end));
             
+            % Find the mean ring activity
             if num_RNs == 1
                 meanRingAct = mean(squeeze(cond{1}.allFlyData{flyID}.All{trialID}.GROIaveMax),1);
             else
                 meanRingAct = mean(squeeze(cond{1}.allFlyData{flyID}.All{trialID}.GROIaveMax(RN,:,:)),1);
             end
 
+            % Find the CW activity
             CWRot = zeros(length(startPtsCW),max(startPtsCW-endPtsCW));
             CWAct = zeros(length(startPtsCW),max(startPtsCW-endPtsCW));
             for iter = 1:length(startPtsCW)
@@ -82,6 +95,7 @@ for flyID = 1:cond{1}.numFlies
             allCWRot{trialID} = CWRot;
             allCWAct{trialID} = CWAct;
             
+            % Find the CCW activity
             CCWRot = zeros(length(startPtsCCW),max(startPtsCCW-endPtsCCW));
             CCWAct = zeros(length(startPtsCCW),max(startPtsCCW-endPtsCCW));
             for iter = 1:length(startPtsCCW)

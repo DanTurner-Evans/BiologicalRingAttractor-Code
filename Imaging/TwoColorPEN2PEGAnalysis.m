@@ -19,10 +19,20 @@ cond{3}.dirs{1} = strcat(dataDir,'GreenPEGsRedPEN2s\EB\20191202');
 cond = FlyDatLoad(2,cond);
 
 %% Specify the PB glomeruli of interest
+% For the red channel
 RLPB = [2:9];
 RRPB = [10:17];
+% For the green channel
 GLPB = [1:8];
 GRPB = [11:18];
+
+%% Set parameters to be used in the analyses
+% The PVA threshold
+PVAThresh = 0.1;
+
+% Filtering parameters
+sgolayOrder = 3;
+sgolayFrames = 11;
 
 %% Sort the activity by the visual conditions
 
@@ -112,7 +122,6 @@ for condID = 1:length(cond)
 end
 
 %% Plot example trials - Figure 7 G,H and Figure S11 P,Q
-PVAThresh = 0.1;
 
 % Specify the EB example
 EBFly = 5;
@@ -122,10 +131,12 @@ EBTrial = 2;
 PBFly = 3;
 PBTrial = 3;
 
+% The ROI angles
 angs = linspace(-pi,pi,17);
 angs(end) = [];
 angs = angs+0.5*mean(diff(angs));
 
+% Step through the conditions (EB and PB)
 for condID = 1:2
     
     actEx = figure('units','normalized','outerposition',[0 0 1 1]);
@@ -142,23 +153,28 @@ for condID = 1:2
         yLimits = [1 18];
     end
     
+    % Pull the data for the trial
     datNow = cond{condID}.allFlyData{flyID}.All{trialID};
     
+    % Get the trial time points and the fly's heading
     tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
     tPts = tPts - tPts(1);
     heading = datNow.positionDatMatch.OffsetRotMatch(:,2);
 
+    % Find the different visual condition periods
     [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
     darkJump = find(diff(darkPer)>1);
     if ~isempty(darkJump)
         darkPer(darkJump(1)+1:end) = [];
     end
     
+    % Account for the reversed imaging direction for the PB vs. the EB
     if condID == 1
         stripePos = -stripePos;
         heading = -heading;
     end
 
+    % Plot the trial data
     subplot(4,3,[1:2])
     if condID == 1
         RAct = datNow.RROIaveMax-1;
@@ -300,14 +316,11 @@ for condID = 1:2
     xlim([tPts(darkPer(1)) tPts(CLPer(end))]);
     xlabel('time (s)');
     ylabel('position (rad)');
-    
-%         set(actEx,'PaperPositionMode','manual','PaperOrientation','landscape','PaperUnits','inches','PaperPosition',[0 0 11 8.5]);
-%         print(actEx,strcat('C:\Users\turnerevansd\Documents\RawAnalysis\EMPaper2ColorCode\',...
-%         allAct{regionID}.name,'_',...
-%         allAct{regionID}.fly{flyID}.color{1}.period{periodID}.type,'_Ex'),'-dpdf');
 end
 
 %% Run a regression with the peak maximum against the forward and rotational velocities - for each trial
+
+% Specify the number of points for the lag
 numPts = 41;
 
 % Look at the EB and PB
@@ -336,10 +349,13 @@ for condID = 1:length(cond)
                   vR = allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.vR;
                   vF = allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.vF;
                   
-                  % Get the maximum activity
+                  % Get the maximum activity and cross correlation values
+                  % for the EB
                   if contains(allAct{condID}.name,'EB: PEN2 - Green, PEG - Red') || contains(allAct{condID}.name,'EB: PEN2 - Red, PEG - Green')
                       maxAct = max(allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.act);
                       
+                      % Calculate the cross correlation with the rotational
+                      % velocity
                       autoC = zeros(numPts,1);
                       for lag = 1:numPts
                           lagCCs = corrcoef(...
@@ -349,6 +365,7 @@ for condID = 1:length(cond)
                       end
                       allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.vRAutoC = autoC;
                       
+                      % Plot the correlation
                       subplot(2*numFlies,2*numPeriods,4*numPeriods*(flyID-1)+2*periodID-2+colorID);
                       hold on;
                       plot(-tStep*numPts/2+linspace(0,(numPts-1)*tStep,numPts),autoC,'Color',...
@@ -358,7 +375,7 @@ for condID = 1:length(cond)
                       ylim([-0.5 1]);
                       xlim([-tStep*numPts/2 tStep*numPts/2]);
                       if periodID == 1 & colorID == 1
-                          ylabel('|vR| autocorrelation');
+                          ylabel('|vR| correlation');
                           text(-2*tStep*numPts/2,1.1,strcat('fly #',num2str(flyID)));
                           if flyID == 1
                               text(-tStep*numPts/2,1.25,allAct{condID}.name);
@@ -374,6 +391,8 @@ for condID = 1:length(cond)
                           end
                       end
                       
+                      % Calculate the cross correlation with the forward
+                      % velocity
                       autoC = zeros(numPts,1);
                       for lag = 1:numPts
                           lagCCs = corrcoef(...
@@ -383,6 +402,7 @@ for condID = 1:length(cond)
                       end
                       allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.vFAutoC = autoC;
                       
+                      % Plot the correlation
                       subplot(2*numFlies,2*numPeriods,4*numPeriods*(flyID-1)+2*periodID-2+colorID+2*numPeriods);
                       hold on;
                       plot(-tStep*numPts/2+linspace(0,(numPts-1)*tStep,numPts),autoC,'Color',...
@@ -398,11 +418,13 @@ for condID = 1:length(cond)
                           xlabel('time delay (s)');
                       end
                       
-                      
+                  % for the PB    
                   elseif contains(allAct{condID}.name,'PB: PEN2 - Green, PEG - Red')
                       maxActL = max(allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.PBSide{1}.act);
                       maxActR = max(allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.PBSide{2}.act);
                       
+                      % Calculate the cross correlation with the rotational
+                      % velocity (positive turns only)
                       vRPos = zeros(size(vR));
                       vRPos(find(vR>0)) = vR(find(vR > 0));
                       autoCL = zeros(numPts,1);
@@ -421,6 +443,7 @@ for condID = 1:length(cond)
                       allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.PBSide{1}.vRPosAutoC = autoCL;
                       allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.PBSide{2}.vRPosAutoC = autoCR;
                       
+                      % Plot the correlation
                       subplot(3*numFlies,2*numPeriods,6*numPeriods*(flyID-1)+2*periodID-2+colorID);
                       hold on;
                       Lplt = plot(-tStep*numPts/2+linspace(0,(numPts-1)*tStep,numPts),autoCL,'Color',...
@@ -450,6 +473,8 @@ for condID = 1:length(cond)
                           end
                       end
                       
+                      % Calculate the cross correlation with the rotational
+                      % velocity (negative turns only)
                       vRNeg = zeros(size(vR));
                       vRNeg(find(vR < 0)) = -vR(find(vR < 0));
                       autoCL = zeros(numPts,1);
@@ -468,6 +493,7 @@ for condID = 1:length(cond)
                       allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.PBSide{1}.vRNegAutoC = autoCL;
                       allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.PBSide{2}.vRNegAutoC = autoCR;
                       
+                      % Plot the correlation
                       subplot(3*numFlies,2*numPeriods,6*numPeriods*(flyID-1)+2*periodID-2+colorID+2*numPeriods);
                       hold on;
                       Lplt = plot(-tStep*numPts/2+linspace(0,(numPts-1)*tStep,numPts),autoCL,'Color',...
@@ -483,6 +509,8 @@ for condID = 1:length(cond)
                           ylabel('vR < 0 autocorrelation');
                       end
                       
+                      % Calculate the cross correlation with the forward
+                      % velocity
                       autoCL = zeros(numPts,1);
                       autoCR = zeros(numPts,1);
                       for lag = 1:numPts
@@ -569,6 +597,8 @@ for condID = 1:length(cond)
                       vFRAll = horzcat(vFRAll,allAct{condID}.fly{flyID}.color{colorID}.period{periodID}.trial{trialID}.PBSide{2}.vFAutoC);
                   end
               end
+              
+              % Plot the values
               if contains(allAct{condID}.name,'EB: PEN2 - Green, PEG - Red') || contains(allAct{condID}.name,'EB: PEN2 - Red, PEG - Green')
                     subplot(2,2*numFlies,2*(flyID-1)+colorID);
                     hold on;
@@ -942,29 +972,25 @@ for condID = 1:length(cond)
           end
       end
    end
-%    reg.Renderer='Painters';
-%    set(reg,'PaperPositionMode','manual','PaperOrientation','landscape','PaperUnits','inches','PaperPosition',[0 0 11 8.5]);
-%    print(reg,strcat('C:\Users\turnerevansd\Documents\RawAnalysis\EMPaper2ColorCode\',...
-%    allAct{condID}.name,'_CCSummary'),'-dpdf');
 end
 
 %% In the EB, look at the PVA diff as a function of velocity - Figure 7 I,J
-PVAThresh = 0.1;
 
-sgolayOrder = 3;
-sgolayFrames = 11;
-
+% Specify the rotational velocity bins
 vREdges = linspace(-pi/2,pi/2,9);
 vRCents = vREdges;
 vRCents(end) = [];
 vRCents = vRCents+0.5*(mean(diff(vRCents)));
 
-condID = 1;
-
 figure;
 
+% Find the bump widths and amplitudes
 WidAmpDat = BumpAmpAndWidth2Cols(cond,'All',PVAThresh);
+
+% Only consider the EB
 for condID = [1,3]
+    
+    % Step through the flies
     for flyID = 1:cond{condID}.numFlies
 
         allDarkvR = [];
@@ -975,26 +1001,35 @@ for condID = [1,3]
         allCLDiff = [];
         allCWDiff = [];
         allCCWDiff = [];
+        
+        % Step through the trials
         for trialID = 1:length(cond{condID}.allFlyData{flyID}.All)
 
+            % Get the data for this trial
             datNow = cond{condID}.allFlyData{flyID}.All{trialID};
 
+            % Get the trial time points and the fly's rotational velocity
             tPts = datNow.positionDatMatch.OffsetRotMatch(:,1);
             tPts = tPts - tPts(1);
             vR = datNow.positionDatMatch.vRot;
             vR = sgolayfilt(vR,sgolayOrder,sgolayFrames);
 
+            % Find the different visual conditions in the trial
             [darkPer,OLPer,CLPer,CWPer,CCWPer] = SortVis(datNow.positionDatMatch);
             darkJump = find(diff(darkPer)>1);
             if ~isempty(darkJump)
                 darkPer(darkJump(1)+1:end) = [];
             end
 
+            % Calculate the PVA
             RAct = datNow.RROIaveMax-1;
             [angs, PVAPlt_R, PVAStren_R] = PVA(RAct-min(min(RAct)));
             GAct = datNow.GROIaveMax-1;
             [angs, PVAPlt_G, PVAStren_G] = PVA(GAct-min(min(GAct)));
 
+            % Find the difference between the PVA positions for the red and
+            % green activity
+            % in the dark
             for tPt = 1:length(darkPer)
                 if PVAStren_R(darkPer(tPt)) > PVAThresh & PVAStren_G(darkPer(tPt)) > PVAThresh
                     PVADiff = min(abs(PVAPlt_R(darkPer(tPt))-PVAPlt_G(darkPer(tPt))),...
@@ -1004,6 +1039,7 @@ for condID = [1,3]
                 end
             end
 
+            % with a closed-loop visual stimulus
             for tPt = 1:length(CLPer)
                 if PVAStren_R(CLPer(tPt)) > PVAThresh & PVAStren_G(CLPer(tPt)) > PVAThresh
                     PVADiff = min(abs(PVAPlt_R(CLPer(tPt))-PVAPlt_G(CLPer(tPt))),...
@@ -1013,6 +1049,7 @@ for condID = [1,3]
                 end
             end
 
+            % with a CW open-loop visual stimulus
             for tPt = 1:length(CWPer)
                 if PVAStren_R(CWPer(tPt)) > PVAThresh & PVAStren_G(CWPer(tPt)) > PVAThresh
                     PVADiff = min(abs(PVAPlt_R(CWPer(tPt))-PVAPlt_G(CWPer(tPt))),...
@@ -1022,6 +1059,7 @@ for condID = [1,3]
                 end
             end
 
+            % with a CCW open-loop visual stimulus
             for tPt = 1:length(CCWPer)-1
                 if PVAStren_R(CCWPer(tPt)) > PVAThresh & PVAStren_G(CCWPer(tPt)) > PVAThresh
                     PVADiff = min(abs(PVAPlt_R(CCWPer(tPt))-PVAPlt_G(CCWPer(tPt))),...
@@ -1032,7 +1070,8 @@ for condID = [1,3]
             end
         end
 
-
+        % Find the mean and percentile range for each visual condition
+        % in the dark
         darkMeans = zeros(length(vRCents),1);
         dark25 = zeros(1,length(vRCents));
         dark75 = zeros(1,length(vRCents));
@@ -1044,6 +1083,7 @@ for condID = [1,3]
             dark75(vRBin) = prctile(allDarkDiff(rng),75);
         end
 
+        % with a closed-loop visual stimulus
         CLMeans = zeros(length(vRCents),1);
         CL25 = zeros(1,length(vRCents));
         CL75 = zeros(1,length(vRCents));
@@ -1055,6 +1095,7 @@ for condID = [1,3]
             CL75(vRBin) = prctile(allCLDiff(rng),75);
         end
 
+        % Plot the calculated values
         if condID == 1
             subplot(4,5,flyID);
             hold on;
@@ -1102,6 +1143,8 @@ for condID = [1,3]
             ylabel('mean PVA difference');
         end
 
+        % Bin the widths by the rotational velocity
+        % in the dark
         visCond = 'Dark';
         allWids_R_Dark = [];
         allWids_G_Dark = [];
@@ -1120,6 +1163,7 @@ for condID = [1,3]
             allWids_G_Dark = vertcat(allWids_G_Dark,mean(wids2plt));
         end
 
+        % in the closed-loop visual condition
         visCond = 'CL';
         allWids_R_CL = [];
         allWids_G_CL = [];
@@ -1138,6 +1182,7 @@ for condID = [1,3]
             allWids_G_CL = vertcat(allWids_G_CL,mean(wids2plt));
         end
 
+        % Plot the widths
         if condID == 1
             subplot(4,5,5+flyID)
             hold on;
