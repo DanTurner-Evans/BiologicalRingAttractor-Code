@@ -2,9 +2,11 @@
  
 Code from:
 
-Turner-Evans ...
+The Neuroanatomical Ultrastructure and Function of a Biological Ring Attractor
 
-https://doi.org/DOI
+Daniel B.Turner-Evans, Kristopher T.Jensen, SabaAli, TylerPaterson, ArloSheridan, Robert P.Ray, TanyaWolff, J. Scott Lauritzen, Gerald M.Rubin, Davi D. Bock, Vivek Jayaraman
+
+https://doi.org/10.1016/j.neuron.2020.08.006
 
 is included in this repository and at https://github.com/KrisJensen/EMpaper. The latter repository contains code relating to FAFB skeleton and synapse extraction, analysis, and plotting, and NEURON simulations. This repo contains code relating to:
 
